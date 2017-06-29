@@ -1,0 +1,63 @@
+<apex:page controller="LoginController">
+<script src="../../soap/ajax/25.0/connection.js" type="text/javascript"></script>
+
+<script type='text/javascript'> 
+    function LoginDetails()
+    {
+        
+        var uname=document.getElementById("{!$Component.form.pb.pbs.uname}").value;
+        var pwd=document.getElementById("{!$Component.form.pb.pbs.pwd}").value;
+        var ver=document.getElementById("{!$Component.form.pb.pbs.chooseVer}").value;
+    
+        //alert("Username:"+uname);
+        //alert("Password:"+pwd);
+        //alert("Env:"+ver); 
+        //alert(sforce.connection.login(uname,pwd));
+         //var result = sforce.connection.login(uname,pwd);
+         //alert(sforce.connection.getUserInfo());
+         //alert(result); 
+        
+         try{
+            var result = sforce.connection.login(uname,pwd);
+            alert("logged in with session id " + result.sessionId);
+            }
+            catch(error) 
+            {
+            if (error.faultcode.indexOf("INVALID_LOGIN") != -1) {
+            alert("check your username and passwd, invalid login");
+            } 
+            else 
+            {
+            alert(error);
+            }
+            }
+     }
+ </script>
+<apex:form id="form">
+    <apex:pageBlock title="Login Details" mode="edit" id="pb">
+        <apex:pageMessages ></apex:pageMessages>
+        <apex:pageBlockButtons location="bottom">
+            <apex:commandButton action="{!submit}" value="Submit" reRender="form"/>
+        </apex:pageBlockButtons>
+        <apex:pageBlockSection title="My Content Section" columns="1" id="pbs">
+            <apex:pageblocksectionItem >
+                <apex:outputLabel value="Enter Username:"/>
+                <apex:inputText value="{!username}" id="uname"/>
+            </apex:pageblocksectionItem>
+            <apex:pageblockSectionItem >
+                <apex:outputLabel value="Password:"/>
+                <apex:inputSecret value="{!password}" id="pwd"/>
+            </apex:pageblockSectionItem>
+            <apex:pageblockSectionItem > 
+                <apex:outputLabel value="Environment:"/>
+                <apex:outputPanel >
+                    <apex:selectList id="chooseVer" value="{!environment}" size="1">
+                    <apex:selectOption itemValue="Production" itemLabel="Production"/>
+                    <apex:selectOption itemValue="Sandbox" itemLabel="Sandbox"/>
+                    </apex:selectList>
+                </apex:outputPanel>
+            </apex:pageBlockSectionItem>
+        </apex:pageBlockSection>
+    </apex:pageBlock>
+</apex:form>
+</apex:page>

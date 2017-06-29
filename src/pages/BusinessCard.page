@@ -1,0 +1,12 @@
+<apex:page docType="html-5.0">
+    <apex:outputText value="{!$User.FirstName}"/>
+    <apex:outputText value="{!$User.LastName}"/><br/>
+    <apex:outputText value="{!$User.Email}"/>
+    <apex:outputText value="{!$User.Phone}"/><br/>
+    <apex:outputText value="{!$User.Title}"/><br/>
+    
+    <apex:outputLabel value="Enter an email address to send contact information"/><br/>
+    <input type="email"/><br/>
+    <input type="button">Submit</input>
+    
+</apex:page>

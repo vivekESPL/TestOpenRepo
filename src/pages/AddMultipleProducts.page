@@ -1,0 +1,137 @@
+<apex:page StandardController="Product2" Extensions="ExtensionAddMultipleProducts" tabstyle="Product2" showHeader="false">
+<script type="text/javascript">
+    function checkAll(cb,cbid)
+        {
+            var inputElem = document.getElementsByTagName("input");                    
+            for(var i=0; i<inputElem.length; i++)
+            {            
+                 if(inputElem[i].id.indexOf(cbid)!=-1){                                       
+                    inputElem[i].checked = cb.checked;
+                }
+            }
+        }
+</script>
+<apex:sectionHeader Title="Add {!$ObjectType.Product2.LabelPlural}"/>
+<!--  <apex:form >
+	<apex:pageBlock title="Add Multiple Products" mode="edit">
+	<apex:panelGrid columns="4" id="theGrid">
+		<apex:outputText value="Product Name" style="font-style:bold"/>
+		<apex:outputText value="Product Code" style="font-style:bold"/>
+		<apex:outputText value="Active" style="font-style:bold"/>
+		<apex:outputText value="Product Family" style="font-style:bold"/>
+		<apex:inputField value="{!product2.name}"/>
+		<apex:inputField value="{!product2.productcode}"/>
+		<apex:inputField value="{!product2.isactive}"/>
+		<apex:inputField value="{!product2.family}"/> 
+		<apex:inputField value="{!product2.name}"/>
+		<apex:inputField value="{!product2.productcode}"/>
+		<apex:inputField value="{!product2.isactive}"/>
+		<apex:inputField value="{!product2.family}"/>
+		<apex:inputField value="{!product2.name}"/>
+		<apex:inputField value="{!product2.productcode}"/>
+		<apex:inputField value="{!product2.isactive}"/>
+		<apex:inputField value="{!product2.family}"/>
+		<apex:inputField value="{!product2.name}"/>
+		<apex:inputField value="{!product2.productcode}"/>
+		<apex:inputField value="{!product2.isactive}"/>
+		<apex:inputField value="{!product2.family}"/>
+		<apex:inputField value="{!product2.name}"/>
+		<apex:inputField value="{!product2.productcode}"/>
+		<apex:inputField value="{!product2.isactive}"/>
+		<apex:inputField value="{!product2.family}"/>
+		</apex:panelGrid>
+		<apex:pageBlockButtons >
+			<apex:commandButton action="{!save}" value="Save"/>
+		</apex:pageBlockButtons>
+	</apex:pageBlock>
+</apex:form> 
+
+    <apex:form >
+    <apex:pageBlock title="Add Multiple Products" >
+            <apex:pageBlockButtons >
+                <apex:commandButton value="Save" action="{!save}" rerender="error" />
+            </apex:pageBlockButtons>
+            <apex:pageBlockTable value="{!prods}" var="a" id="table">
+                <apex:column headerValue="Product Name">
+                    <apex:inputField value="{!a.Name}"/>
+                </apex:column> 
+                <apex:column headerValue="Product Code">
+                    <apex:inputField value="{!a.productcode}"/>
+                </apex:column>               
+                <apex:column headerValue="Active">
+                    <apex:inputField value="{!a.isactive}"/>
+                </apex:column>
+                <apex:column headerValue="Family">
+                    <apex:inputField value="{!a.family}"/>
+                </apex:column>
+            </apex:pageBlockTable>
+    <apex:pageblockButtons location="bottom">
+        <div style="text-align:right;margin-right:30px;font-weight:bold;">
+            <apex:commandLink value="Add Row" action="{!addRow}" rerender="table,error" immediate="true" />
+				&nbsp;|&nbsp;&nbsp;
+            <apex:commandLink value="Remove Row" action="{!removeRow}" rerender="table,error" immediate="true" />                
+        </div>
+    </apex:pageblockButtons>  
+    </apex:pageBlock>
+    </apex:form>  -->
+    
+     <apex:form >
+   <apex:pageBlock title="Create Multiple Products">
+      <apex:pageBlockTable value="{!wrappers}" var="wrapper" id="wtable">
+      
+        <!--     <apex:column headerValue="Ident">
+            <apex:outputText value="{!wrapper.ident}"/>
+         </apex:column>           
+		
+           <apex:column headerValue="Active">
+            <apex:inputField value="{!wrapper.prod.isactive}"/>
+         </apex:column>  
+         
+         <apex:column >
+		<apex:facet name="header"> <apex:inputCheckbox >
+		<apex:actionSupport event="onclick" onsubmit="checkAll(this,'checkedone')" rerender="wtable"/>
+		</apex:inputCheckbox></apex:facet>
+         
+         	<apex:inputCheckbox value="{!wrapper.prod.isactive}" id="checkedone">
+			<apex:actionSupport event="onclick" rerender="wtable"/>
+			</apex:inputCheckbox></apex:column>  -->
+			
+			<apex:column ><apex:facet name="header">
+			<apex:inputCheckbox onclick="checkAll(this,'checkedone')"/>
+			</apex:facet>
+			<apex:inputCheckbox value="{!wrapper.prod.isactive}" id="checkedone"/></apex:column>
+			
+         <apex:column headerValue="Product Name">
+            <apex:inputField value="{!wrapper.prod.Name}"/>
+         </apex:column>
+         <apex:column headerValue="Product Code">
+            <apex:inputField value="{!wrapper.prod.productcode}"/>
+         </apex:column>        
+         <apex:column headerValue="Family">
+            <apex:inputField value="{!wrapper.prod.family}"/>        
+         </apex:column>
+         <apex:column headerValue="Description">
+            <apex:inputField value="{!wrapper.prod.description}" style="max-height:25px;max-width:100px;min-height:25px;min-width:100px"/>        
+         </apex:column>
+         <apex:column headerValue="Standard Price">
+            <apex:inputField value="{!wrapper.pricebk.UnitPrice}"/>         
+         </apex:column>
+         <apex:column headerValue="Action">
+            <apex:commandLink value="Delete Row" action="{!delWrapper}" rerender="wtable">
+               <apex:param name="toDelIdent" value="{!wrapper.ident}" assignTo="{!toDelIdent}"/>
+            </apex:commandLink>
+         </apex:column>
+      </apex:pageBlockTable>
+      <apex:pageBlockButtons location="bottom">
+      <apex:commandButton value="Add Row" action="{!addRows}" rerender="wtable">
+         <apex:param name="addCount" value="1" assignTo="{!addCount}"/>
+      </apex:commandButton>
+      <apex:commandButton value="Add 5 Rows" action="{!addRows}" rerender="wtable">
+         <apex:param name="addCount" value="5" assignTo="{!addCount}"/>
+      </apex:commandButton>
+      <apex:commandButton value="Save" action="{!save}"/>
+      </apex:pageBlockButtons>
+   </apex:pageBlock>
+ </apex:form>
+    
+</apex:page>

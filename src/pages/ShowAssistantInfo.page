@@ -1,0 +1,4 @@
+<apex:page docType="html-5.0" standardController="Contact" title="Assistant Info">
+    <label>Assistant Name: </label><label>{!Contact.AssistantName}</label>
+    <label>Tel: </label><a href="">{!Contact.AssistantPhone}</a>
+</apex:page>

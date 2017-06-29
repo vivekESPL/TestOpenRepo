@@ -1,0 +1,130 @@
+<apex:page showHeader="false" sidebar="false"
+	controller="FormulaeFilterLookupController" cache="false">
+	<script>
+	    //setting the selected values to the parent input and closing the current window
+		function a() {
+			//window.opener.document.getElementById("targetField1").value = 'abc';
+			//alert('input');
+			top.window.opener.document.getElementById("targetField1").value = 'abc';
+			close();
+		}
+		
+		//returns the query string parameter value
+		function getQueryVariable(varName) {
+		    var queryStr = unescape(window.location.search) + '&';
+		    var regex = new RegExp('.*?[&\\?]' + varName + '=(.*?)&.*');
+		    val = queryStr.replace(regex, "$1");
+		    return val == queryStr ? false : val;
+       }
+       
+       //setting the default checked for the radio options
+       window.onload = function () {
+          var inputVal = getQueryVariable('pInputValue');
+          if(inputVal == 'True' || inputVal == 'False')
+              document.getElementById(inputVal).checked = 'checked'; 
+       }
+	</script>
+    <style>
+     .div.pbBottomButtons > .btn {
+		    margin-left: 20%;
+		    margin-right: 3px;
+     }
+     .btn{
+     	 margin-left: 50%;
+		    margin-right: 3px;
+     }
+    </style>
+    
+	<apex:form id="PMform">
+		<img src="/s.gif" alt="" class="pageTitleIcon" title="" />
+		<h1>Lookup</h1>
+		<h2>Select the picklist values to add below.</h2>
+		<br />
+		<br />
+		<apex:commandLink value="Deselect all"
+			onClick="unCheckAll(this,'checkedone')" rendered="{!blnPicklist}" />
+		<apex:PageBlock rendered="{!blnPicklist}">
+			<apex:pageBlockButtons >
+				<apex:commandButton title="Insert Selected" value="Insert Selected"
+					action="{!selectedValues}" reRender="PMform"
+					oncomplete="selected('{!strSelectedValues}','{!filterTargetId}','{!hiddenValueId}')" />
+			</apex:pageBlockButtons>
+			<apex:pageBlockTable value="{!fieldsNameList}" var="PM"
+				styleClass="required" style="width:200px;">
+				<apex:column >
+					<apex:facet name="header">
+						<apex:inputCheckbox id="selectall"
+							onclick="checkAll(this,'checkedone')" style="text-align:center;" />
+					</apex:facet>
+					<apex:inputCheckbox value="{!PM.isRemove}" id="checkedone" />
+				</apex:column>
+				<apex:column headerValue="Value">
+					<apex:outputText value="{!PM.strPicklistValue}" />
+				</apex:column>
+
+			</apex:pageBlockTable>
+
+		</apex:PageBlock>
+
+		<apex:PageBlock rendered="{!!blnPicklist}">
+			<apex:pageBlockButtons >
+				<apex:commandButton title="Insert Selected" value="Insert Selected"
+					reRender="PMform"
+					onClick="selectedBoolean('{!filterTargetId}','{!hiddenValueId}')" />
+			</apex:pageBlockButtons>
+			<apex:pageBlockTable value="{!fieldsBooleanValues}" var="PM"
+				styleClass="required" style="width:200px;">
+				<apex:column >
+					<apex:facet name="header">
+					</apex:facet>
+					<input type="radio" id="{!PM}" name="checkbox" value="{!PM}" />
+				</apex:column>
+				<apex:column headerValue="Value">
+					<apex:outputText value="{!PM}" />
+				</apex:column>
+
+			</apex:pageBlockTable>
+
+		</apex:PageBlock>
+	</apex:form>
+
+	<script type="text/javascript">
+		function checkAll(cb, cbid) {
+			var inputElem = document.getElementsByTagName("input");
+			for ( var i = 0; i < inputElem.length; i++) {
+				if (inputElem[i].id.indexOf(cbid) != -1) {
+					inputElem[i].checked = cb.checked;
+				}
+			}
+		}
+
+		function unCheckAll(cb, cbid) {
+			var inputElem = document.getElementsByTagName("input");
+			for ( var i = 0; i < inputElem.length; i++) {
+				inputElem[i].checked = false;
+			}
+		}
+
+		function selected(pStringSelectedValues, pstrTargetId, pHiddenValueId) {
+			//top.window.opener.document.getElementById(pstrTargetId).value = pStringSelectedValues;
+			//top.window.opener.document.getElementById(pHiddenValueId).value = pStringSelectedValues;
+			top.window.opener.parentFunction(pstrTargetId,pStringSelectedValues,pHiddenValueId,'Picklist');
+			//window.close();
+		}
+
+		function selectedBoolean(pstrTargetId, pHiddenValueId) {
+			var radios = document.getElementsByName("checkbox");
+			var selectedBoolenValue = '';
+			for ( var i = 0; i < radios.length; i++) {
+				if (radios[i].checked) {
+					selectedBoolenValue = radios[i].value;
+					break;
+				}
+			}
+			//top.window.opener.document.getElementById(pstrTargetId).value = selectedBoolenValue;
+			//top.window.opener.document.getElementById(pHiddenValueId).value = selectedBoolenValue;
+			top.window.opener.parentFunction(pstrTargetId,selectedBoolenValue,pHiddenValueId,'Boolean');
+			//close();
+		}
+	</script>
+</apex:page>

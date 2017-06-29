@@ -1,0 +1,11 @@
+<apex:page controller="CodeHighlighterDemoController" sidebar="false" standardStylesheets="false" showHeader="false">
+    <apex:stylesheet value="{!$Resource.PrismCSS}"/>
+    <apex:includeScript value="{!$Resource.PrismJS}"/>
+    
+    <a href="#preCode.12">Test1</a>
+    <a href="#preCode.38">Test2</a>
+    
+    <pre id="preCode" class="line-numbers" data-line="5-10, 12"><code class="language-Java">
+        <apex:outputText value="{!apexCode}"/>
+    </code></pre>
+</apex:page>

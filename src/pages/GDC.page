@@ -1,0 +1,78 @@
+<apex:page controller="GDC" sidebar="true"> 
+<apex:form id="formId">
+   <apex:actionFunction name="ObjectFileds" action="{!ObjectFields}"/>
+   <apex:actionFunction name="oper" action="{!op}" rerender="formId">
+   	  <apex:param name="index" value=""/>
+   	</apex:actionFunction>
+   <apex:actionFunction name="oper1" action="{!op1}">
+   </apex:actionFunction>
+       <apex:pageBlock >
+           <apex:sectionHeader title="Searching Duplicates" />
+           <b>Select Object:</b> 
+           <apex:selectList multiselect="false" size="1" value="{!SelectedObject}" onChange="ObjectFileds();">  
+               <apex:selectoptions value="{!supportedObject}" />  
+           </apex:selectlist>
+       </apex:pageBlock>
+       <apex:pageBlock id="block">
+       <table>
+            <tr> 
+                <th>Field</th>
+                <th>Operator</th>
+                <th>Value</th>
+            </tr>
+            <apex:repeat value="{!lstInner}" var="e1" id="therepeat">
+            <tr>
+                <td>            
+                    <apex:selectList id="selectionBlock"  multiselect="false" size="1" value="{!e1.field}" onChange="oper('{!e1.recCount}');"> 
+                        <apex:selectoptions value="{!supportedFields}" /> 
+                    </apex:selectlist>
+                </td>
+                
+                <td>
+                    <apex:selectList size="1" value="{!e1.operator}">
+                    <apex:selectOptions value="{!e1.supportedoperator}" />
+                    </apex:selectList>
+                </td>
+           
+               
+                <td>               
+                    <apex:inputText value="{!e1.value}" />
+                </td>
+            </tr>
+            </apex:repeat>
+       </table>
+      
+            
+<!--            <apex:selectList id="selectionBlock1"  multiselect="false" size="1" value="{!SelectedFields2}" onChange="oper1();" > -->
+<!--            <apex:selectOption itemLabel="--None--" itemValue="--None--"/>   -->
+<!--            <apex:selectoptions value="{!supportedFields}" />   -->
+<!--            </apex:selectlist> -->
+           
+<!--            <apex:selectList size="1" value="{!str2}"> -->
+<!--            <apex:selectOptions value="{!supportedoperator1}" /> -->
+<!--            </apex:selectList> -->
+           
+<!--            <apex:inputText value="{!value2}" /><br/> -->
+           <apex:commandButton value="Add Filter" action="{!Add}" rerender="block"/>
+           <apex:commandButton value="Find Records" action="{!generatequery}" />
+      
+      
+       </apex:pageBlock>
+       
+       
+       
+       <apex:pageBlock > 
+           <apex:pageBlockTable rendered="{!IF(slst.size > 0 , true , false)}" value="{!slst}" var="rec"> 
+           <apex:column >
+        <apex:facet name="header"> Check </apex:facet>
+        <apex:inputCheckbox id="chk" />
+        </apex:column>  
+           <apex:column value="{!rec.Id}" rendered="{!IF(newFieldsName.size == 0 , true, false)}"/>   
+           <apex:repeat value="{!totalfield}" var="FieldLable"> 
+           <apex:inputCheckbox />  
+           <apex:column value="{!rec[FieldLable]}" rendered="{!IF(FieldLable != '--None--' , true, false)}"/>   
+           </apex:repeat> 
+           </apex:pageBlockTable> 
+       </apex:pageBlock>
+</apex:form>
+</apex:page>

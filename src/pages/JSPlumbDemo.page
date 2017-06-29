@@ -1,0 +1,158 @@
+<apex:page title="JSPlumb Demo" sidebar="false">
+
+<style>
+    #main {
+        /* these two margins settings are here just to ensure that jsPlumb handles
+        margins properly.*/  
+        margin-top:44px;
+        margin-left: auto;
+        position: relative;
+        font-size: 100%;
+        margin-right: auto;
+        width: 850px;
+/*      border-left: 2px solid #456; */
+/*      border-right: 2px solid #456; */
+/*      border-bottom: 2px solid #456; */
+        height: 600px;
+        overflow: hidden;
+/*      border-bottom-left-radius: 10px; */
+/*      border-bottom-right-radius: 10px; */
+        background-color:white;
+    }
+    
+    .window, .label { 
+        background-color:white;
+        text-align:center;
+        z-index:24;
+        cursor:pointer;
+        box-shadow: 2px 2px 19px #aaa;
+       -o-box-shadow: 2px 2px 19px #aaa;
+       -webkit-box-shadow: 2px 2px 19px #aaa;
+       -moz-box-shadow: 2px 2px 19px #aaa;    
+    }
+    
+    .component {
+        opacity:0.8; 
+        filter:alpha(opacity=80);
+        background-color:white;
+        color:black;
+        font-family:helvetica;
+        padding:0.5em; 
+    
+    }
+    
+    .window { 
+        border:2px solid #346789; 
+        width:8em; 
+        height:8em;
+        line-height: 8em;   
+        position:absolute; 
+        font-size:0.8em;
+        border-radius:0.5em;
+    }
+    
+    #window1 {  top:5em;left:4em;}
+    #window2 { top:5em; left:49em;}
+    #window3 { top:31em;left:4em; }
+    #window4 { top:18em; left:28em;}
+/*  #window5 {top:45em;left:33em;} */
+    #window6 {top:31em;left:49em;}
+    #window7 {top:45em;left:28em;} 
+    
+</style>
+
+<apex:includescript value="//ajax.googleapis.com/ajax/libs/jquery/1.8.1/jquery.min.js"/>
+<apex:includescript value="//ajax.googleapis.com/ajax/libs/jqueryui/1.8.23/jquery-ui.min.js"/>
+
+<apex:includescript value="{!URLFOR($Resource.JSPlumbResources, 'js/jquery.jsPlumb-1.4.0-all-min.js')}" />
+
+<script>
+
+    jsPlumb.ready(function() {
+    
+        jsPlumb.importDefaults({
+            DragOptions : { cursor: "pointer", zIndex:2000 }
+        });
+        
+        jsPlumb.connect({
+            source:"window4",
+            target:"window1",
+            anchor:"AutoDefault",
+            endpoint:"Blank",
+            paintStyle:{ 
+                    lineWidth:2,
+                    strokeStyle:"#1B9BE0"
+            },
+            connector:["Straight", { stub:0, gap:0 }],
+        });
+        
+        jsPlumb.connect({
+            source:"window4",
+            target:"window2",
+            anchor:"AutoDefault",
+            endpoint:"Blank",
+            paintStyle:{ 
+                    lineWidth:2,
+                    strokeStyle:"#1B9BE0"
+            },
+            connector:["Straight", { stub:0, gap:0 }],
+        });
+        
+        jsPlumb.connect({
+            source:"window4",
+            target:"window6",
+            anchor:"AutoDefault",
+            endpoint:"Blank",
+            paintStyle:{ 
+                    lineWidth:2,
+                    strokeStyle:"#1B9BE0"
+            },
+            connector:["Straight", { stub:0, gap:0 }],
+        });
+        
+        jsPlumb.connect({
+            source:"window4",
+            target:"window3",
+            anchor:"AutoDefault",
+            endpoint:"Blank",
+            paintStyle:{ 
+                    lineWidth:2,
+                    strokeStyle:"#1B9BE0"
+            },
+            connector:["Straight", { stub:0, gap:0 }],
+        });
+        
+        jsPlumb.connect({
+            source:"window4",
+            target:"window7",
+            anchor:"AutoDefault",
+            endpoint:"Blank",
+            paintStyle:{ 
+                    lineWidth:2,
+                    strokeStyle:"#1B9BE0"
+            },
+            connector:["Straight", { stub:0, gap:0 }],
+        });
+        
+        jsPlumb.draggable(jsPlumb.getSelector(".window"), { containment:$("#main")}); 
+    });
+    
+    
+      
+</script>
+
+<div id="main">
+    <div id="render"></div> 
+    <div class="component window around" id="window1"><strong>Chris Hendrick</strong></div>
+    <div class="component window around" id="window2"><strong>Ted Carter</strong></div>
+    <div class="component window around" id="window3"><strong>Michael Hwa</strong></div>
+    <div class="component window center" id="window4"><strong>First Call</strong></div>
+<!--     <div class="component window" id="window5"><strong>Window 5</strong></div> -->
+    <div class="component window around" id="window6"><strong>Chris Phillips</strong></div>
+    <div class="component window around" id="window7"><strong>Jeff Moore</strong></div>
+         
+</div>
+
+
+        
+</apex:page>

@@ -1,0 +1,12 @@
+<apex:page showHeader="false">
+
+	<apex:sectionHeader title="www.aslambari.com"
+		subtitle="Multi Sheet (tabs) Excel Workbook Generate Demo Within Salesforce" />
+
+	<apex:pageblock >
+		<input type ="button" 
+		onclick="javascript:window.top.location='/apex/MultiSheetExcelGenerate';"
+			style="cursor:pointer" value="Generate Sample Excel Workbook" />
+
+	</apex:pageblock>
+</apex:page>

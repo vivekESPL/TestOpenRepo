@@ -1,0 +1,24 @@
+<apex:page controller="PageBlockTableDemoController">
+    <apex:pageBlock title="Accounts">
+        <apex:pageBlockTable value="{!lstAccount}" var="acc">
+            <apex:column value="{!acc.Name}"/>
+            <apex:column value="{!acc.Phone}"/>
+            <apex:column value="{!acc.Type}"/>
+            <apex:column value="{!acc.Website}"/>
+        </apex:pageBlockTable>
+    </apex:pageBlock>
+    
+    <apex:pageBlock title="Account Info">
+        <apex:pageblockSection columns="1">
+            <apex:pageblockSectionItem >
+                <apex:outputLabel value="Account Name"/>
+                <apex:outputText value="{!objAccount.Name}"/>
+            </apex:pageblockSectionItem>
+            
+            <apex:pageblockSectionItem >
+                <apex:outputLabel value="Loggedin username"/>
+                <apex:outputText value="{!$User.FirstName}"/>
+            </apex:pageblockSectionItem>
+        </apex:pageblockSection> 
+    </apex:pageBlock>
+</apex:page>

@@ -1,0 +1,145 @@
+<apex:page title="AngularJS Tutorial">
+    <apex:includeScript value="{!$Resource.AngularJS}"/>
+    
+    <div ng-app="app" ng-init="firstName='Vivek'; points=[1,2,3,4,5]; 
+        person={firstName:'Test First Name', lastName: 'Test Last Name'};
+        names=['Vivek', 'Ashish', 'Neena', 'Parmanand', 'Satprit']"
+        ng-controller="myCntlr" name="myApp">
+        
+        <p>First Name is: <span ng-bind="firstName"/></p>
+        <p>Input something in the input box:</p>
+        <p>Name: <input type="text" ng-model="name"/></p>
+        <p ng-bind="name"></p>
+        <p>{{name}}</p>
+        
+        <br/>
+        <p>First Name: <input type="text" ng-model="fName"/></p>
+        <p>Last Name: <input type="text" ng-model="lName"/></p>
+        <p>Full Name: <span ng-bind="fullName()"/></p>
+        <br/>
+        
+        <p><b>AngularJS Arrays</b></p>
+        <p>Third element in the array is: {{points[2]}}</p>
+        
+        <br/>
+        <p><b>AngularJS Objects</b></p>
+        <p>Person's Last Name: <span ng-bind="person.lastName"/></p>
+        
+        <br/>
+        <p><b>Repeating HTML elements</b></p>
+        <ul>
+            <li ng-repeat="x in names">
+                <span ng-bind="x"/>
+            </li>
+        </ul>
+        
+        <br/>
+        <p><b>AngularJS Filters</b></p>
+        <p>Price: <input type="number" ng-model="price"/></p>
+        <p>Quantity: <input type="number" ng-model="quantity"/></p>
+        <p>Amount: {{(price * quantity) | currency}}</p>
+        
+        <br/>
+        <p>Input text to filter: <input type="text" ng-model="test"/></p>
+        <ul>
+            <li ng-repeat="x in nameCountry | filter:test | orderBy:'country'">
+                {{(x.name | uppercase) + ', ' + (x.country)}}
+            </li>
+        </ul>
+        
+        <br/>
+        <p><b>AngularJS Ajax - $http</b></p>
+        <ul>
+            <li ng-repeat="x in customers">
+                {{x.Name + ', ' + x.Country}}
+            </li>
+        </ul>
+        
+        <br/>
+        <p><b>AngularJS Tables</b></p>
+        <table>
+            <tr>
+                <td><b>Name</b></td>
+                <td><b>Country</b></td>
+            </tr>
+            <tr ng-repeat="x in nameCountry">
+                <td>{{x.name}}</td>
+                <td>{{x.country}}</td>
+            </tr>
+        </table>
+        
+        <br/>
+        <p><b>AngularJS Events</b></p>
+        <p><b>ng-disabled</b></p>
+        <p><input type="button" ng-disabled="check" value="Click Me!"/></p>
+        <p><input type="checkbox" ng-model="check"/></p>
+        
+        <p><b>ng-show</b></p>
+        <p ng-show="show">Text is visible!</p>
+        <p><input type="checkbox" ng-model="show"/></p>
+        
+        <p><b>ng-click</b></p>
+        <input type="button" value="Toggle User Input" ng-click="toggleUser()"/>
+        <p ng-show="toggle">
+            First Name: <input type="text" ng-model="fn"/>
+            <br/>
+            Last Name: <input type="text" ng-model="ln"/>
+            <br/>
+            Full Name: {{fn + ' ' + ln}}
+        </p>
+    
+	    <div ng-controller="validateCntlr" name="myForm">
+	        <h2>Form Validation</h2>
+	        <p>Username:<br/>
+	            <input type="text" name="user" ng-model="user" required="true"/>
+	            <span style="color:red" ng-show="myApp.myForm.user.$dirty && myApp.myForm.user.$invalid">
+	                <span ng-show="myApp.myForm.user.$error.required">Username is required</span>
+	            </span>
+	        </p>
+	        
+	        <p>Email:<br/>
+	            <input type="email" name="email" ng-model="email" required="true"/>
+	            <span style="color:red" ng-show="myApp.myForm.email.$dirty && myApp.myForm.email.$invalid">
+	                <span ng-show="myApp.myForm.email.$error.required">Email is required</span>
+	                <span ng-show="myApp.myForm.email.$error.email">Invalid email address</span>
+	            </span>
+	        </p>
+	        
+	        <p><input type="submit" ng-disabled="myApp.myForm.user.$dirty && myApp.myForm.user.$invalid || 
+	           myApp.myForm.email.$dirty && myApp.myForm.email.$invalid" value="Submit"/>
+	        </p>
+	    </div>
+    </div>
+    
+    <script>
+        var app = angular.module('app', []);
+        app.controller('myCntlr', function($scope, $http) {
+            $scope.fName = "Vivek";
+            $scope.lName = "Shinde";
+            $scope.fullName = function() {
+                return $scope.fName + ' ' + $scope.lName;
+            }
+            $scope.price = 150;
+            $scope.quantity = 5;
+            $scope.nameCountry = [{name:'Vivek', country:'India'}, {name:'Neena', country:'Uganda'},
+                                  {name:'Ashish', country:'China'}, {name:'Parmanand', country:'USA'}];
+            
+            /*$http.get("http://www.w3schools.com/angular/customers.php").success(function(response) {
+                $scope.customers = response.records;
+            });*/
+            
+            $scope.fn = "Vivek";
+            $scope.ln = "Shinde";
+            $scope.toggle = false;
+            $scope.toggleUser = function() {
+                $scope.toggle = !$scope.toggle;
+            }
+        });
+        
+        //var formApp = angular.module('form', []);
+        app.controller('validateCntlr', function($scope) {
+            $scope.user = "Vivek Shinde";
+            $scope.email = "vivek11shinde@gmail.com";
+        });
+    </script>
+</apex:page>

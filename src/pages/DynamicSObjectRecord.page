@@ -1,0 +1,25 @@
+<apex:page controller="DynamicSObjectRecordController" tabStyle="Account">
+	<apex:form id="formId">
+	
+		<apex:pageBlock >
+			<apex:pageBlockButtons location="bottom">
+				<apex:commandButton value="Save" action="{!saveDynamicSObjectRecord}" rerender="formId,msgs">
+				</apex:commandButton>
+			</apex:pageBlockButtons>
+			<apex:pageMessages id="msgs"/>
+
+			<apex:pageBlockSection title="Dynamically Generating SObject Record">
+				<apex:pageBlockSectionItem >
+					<apex:outputLabel >Enter SObject Name:</apex:outputLabel>
+					<apex:inputText value="{!objectName}"/>
+				</apex:pageBlockSectionItem>
+				
+				<apex:pageBlockSectionItem >
+					<apex:outputLabel >Enter Record Name:</apex:outputLabel>
+					<apex:inputText value="{!recordName}"/>
+				</apex:pageBlockSectionItem>
+			</apex:pageBlockSection>
+
+		</apex:pageBlock>
+	</apex:form>
+</apex:page>

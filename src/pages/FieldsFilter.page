@@ -1,0 +1,3049 @@
+<!-- * VF page description:  -->
+<!--                         -->
+<!-- *  Revision History: -->
+<!-- *  Version             Author              Date                Description -->
+<!-- *  1.0                Amol Chaudhari      31/01/2013           Intial Draft -->
+
+<apex:page controller="FieldsFilterController" sidebar="false" cache="false">
+ 
+    <apex:includeScript value="{!URLFOR($Resource.FieldFilter, 'FieldFilter/js/jquery-1.6.2.min.js')}" /> 
+    <apex:includeScript value="{!URLFOR($Resource.FieldFilter, 'FieldFilter/js/jquery-ui1.js')}" />
+<!--     <apex:stylesheet value="{!URLFOR($Resource.FieldFilter, 'FieldFilter/css/jquery-ui-redmond.css')}" /> -->
+    <apex:stylesheet value="{!URLFOR($Resource.FieldsFilter, 'css/jquery-ui-redmond.css')}" />
+ 
+	<style>
+		.ui-autocomplete-category {
+            font-weight: bold;
+            margin: .8em 0 .2em;
+        }
+        
+        ul {
+            resize: both;
+            overflow-y: auto; 
+            overflow-x: hidden;
+            max-height: 200px;
+            width: auto;
+        }
+        .ui-menu .ui-menu-item a{
+            cursor: pointer;
+        }
+        
+        .hidden {
+            display:none;
+        }
+        
+        .errorMsg{
+            color: #D74C3B;
+        }
+        
+        .errorDiv{
+            width: 225px;
+        }
+        
+        .ui-widget-header .ui-state-focus {
+            border: 1px solid #ffffff;
+            background: #d0e5f5;
+            font-weight: normal;
+            color: #1d5987;
+        }
+        
+        .ui-corner-all, .ui-corner-bottom, .ui-corner-right, .ui-corner-br {
+            border-bottom-right-radius: 0px;
+        }
+        
+      	.ui-corner-all, .ui-corner-bottom, .ui-corner-left, .ui-corner-bl {
+            border-bottom-left-radius:  0px;
+       	}
+       	
+    	.ui-corner-all, .ui-corner-top, .ui-corner-right, .ui-corner-tr {
+            border-top-right-radius:  0px;
+     	}
+     	
+    	.ui-corner-all, .ui-corner-top, .ui-corner-left, .ui-corner-tl {
+           border-top-left-radius:  0px;
+     	}
+     	
+     	.ui-menu .ui-menu-item a {
+            line-height: 0.8;
+	     }
+	     
+     	.ui-widget-overlay{
+        	opacity:0.6;
+        	background:black;
+    	}
+    	
+    	.ui-widget-header{
+        	border:1px solid rgb(247, 247, 247);
+        	color:black;
+    	}
+    	
+    	.ui-dialog .ui-dialog-titlebar {
+        	background : url('/img/alohaSkin/overlayTopLft.png') left top no-repeat;
+       		padding: 6px 4px 6px 10px;
+    	}
+    	
+    	.ui-widget input, .ui-widget select, .ui-widget textarea, .ui-widget button {
+        	font-family: Arial,Helvetica,sans-serif;
+    	}
+    
+    	.ui-widget {
+        	font-family: Arial,helvetica,verdana,sans-serif;
+        	font-size: 1.1em;
+   		}
+   		
+		.ui-widget-content{
+			border-color: white;
+		}
+        .ui-widget {
+        	font-family: Arial,helvetica,verdana,sans-serif;
+        	font-size: 1.1em;
+   		}
+   		
+		.ui-widget-content {
+			border-color: gray;
+			background-color: #f9f9f9;
+        }
+        
+		.invisible {
+            visibility:hidden;
+        }
+        
+        .tblFieldFilter{
+			font-size: 91%;
+		} 
+		
+		.ui-dialog .ui-dialog-titlebar-close {
+    		margin: -10px 0 0;
+    		padding: 1px;
+		    position: absolute;
+		    right: 0.3em;
+		    top: 50%;
+		}
+		
+		.fieldFilter ui-autocomplete-input {
+			border-color: gray;
+			background-color: #f9f9f9;
+		}
+    </style>
+ 
+    <script>
+    
+    var intFilterIndex = 0;			
+    var receivedData;
+    var isEdit;
+    var onLoad = false;
+    var blnIsLogicShown = false;
+    var sourceObject = '';
+    var strFinalFilter = '';
+    
+	//Array the stores the filter numbers for all the filter criterias
+	var filterNumbers = new Array();    
+    
+    //The global variable essentially required to identify whether the field has been selected through
+    //auto complete or not. Required to avoid the flashing of the error message
+    var isOptionSelected = false;
+    
+    j$=jQuery.noConflict();
+    
+    function clickLink(link) {
+		    var cancelled = false;
+		
+		    if (document.createEvent) {
+		        var event = document.createEvent("MouseEvents");
+		        event.initMouseEvent("click", true, true, window,
+		            0, 0, 0, 0, 0,
+		            false, false, false, false,
+		            0, null);
+		        cancelled = !link.dispatchEvent(event);
+		    }
+		    else if (link.fireEvent) {
+		        cancelled = !link.fireEvent("onclick");
+		    }
+		
+		    if (!cancelled) {
+		        window.location = link.href;
+		    }
+    }
+    
+    window.onload = function () {
+    
+    //	clearAll();
+       //clickLink(document.getElementById('clearAll'));
+    	//j$('.fieldFilter').bind('click'); 
+        //j$('.fieldFilter').trigger('click');      
+    }
+    
+     
+     function isLastCharacter(pLabel) {
+        var n = pLabel.substring(pLabel.length,(pLabel.length-2));
+        if(n == ': '){
+            return true;
+        }else{
+            return false;
+        }
+    }
+    
+    //getting the API name for the selected field
+    function getFieldAPIName(pCustomExp) {
+        var strAPI = pCustomExp.substring(pCustomExp.indexOf('API#S')+5,pCustomExp.indexOf('API#E'));
+        return strAPI;
+    }
+    
+    //getting the data type for the selected field
+    function getFieldDataType(pCustomExp) {
+        var strDataType = pCustomExp.substring(pCustomExp.indexOf('FTYPE#S')+7,pCustomExp.indexOf('FTYPE#E'));
+        return strDataType;
+    }
+    
+    //getting the picklist values for the selected field
+    function getFieldPickListValues(pCustomExp) {
+        var strPickListValues = pCustomExp.substring(pCustomExp.indexOf('PICK#S')+6,pCustomExp.indexOf('PICK#E'));
+        return strPickListValues;
+    }
+    
+    //getting the data type for the selected field
+    function getFieldOperators(pCustomExp) {
+        var strOperators = pCustomExp.substring(pCustomExp.indexOf('OP#S')+4,pCustomExp.indexOf('OP#E'));
+        return strOperators;
+    }
+    
+    //getting the data type for the selected field
+    function getFieldLabelForSecondSelection(pCustomExp) {
+        var strLabel = pCustomExp.substring(pCustomExp.indexOf('LBL#S')+5,pCustomExp.indexOf('LBL#E'));
+        strLabel = strLabel.split(': ')[1];
+        return strLabel;
+    }
+    
+    //getting the the label for last selection 
+    function getFieldLabelForThirdSelection(pCustomExp) {
+        var strLabel = pCustomExp.substring(pCustomExp.indexOf('LBL#S')+5,pCustomExp.indexOf('LBL#E'));
+        strLabel = strLabel.split(': ')[1] +': '+strLabel.split(': ')[2];
+        return strLabel;
+    }
+    
+    //getting the Obj1 Api Name
+    function getObject1Api(pCustomExp) {
+        var strObj1Api = pCustomExp.substring(pCustomExp.indexOf('OBJ1#S')+6,pCustomExp.indexOf('OBJ1#E'));
+        return strObj1Api;
+    }
+    
+    //getting the Obj2 Api Name
+    function getObject2Api(pCustomExp) {
+        var strObj2Api = pCustomExp.substring(pCustomExp.indexOf('OBJ2#S')+6,pCustomExp.indexOf('OBJ2#E'));
+        return strObj2Api;
+    }    
+    
+    //getting the reference object 1 from custom expression
+    function getReferenceObject1(pCustomExp) {
+        var strLabel = pCustomExp.substring(pCustomExp.indexOf('REFOBJ1#S')+9,pCustomExp.indexOf('REFOBJ1#E'));
+        return strLabel;
+    }
+    
+    //getting the reference object 1 from custom expression
+    function getReferenceObject2(pCustomExp) {
+        var strLabel = pCustomExp.substring(pCustomExp.indexOf('REFOBJ2#S')+9,pCustomExp.indexOf('REFOBJ2#E'));
+        return strLabel;
+    }
+    
+    //getting the field label from the string 
+    function getFieldLabel(pCustomExp) {
+        var strLabel = pCustomExp.substring(pCustomExp.indexOf('LBL#S')+5,pCustomExp.indexOf('LBL#E'));
+        return strLabel;
+    }
+    
+    //closing the modal window of lookup
+    function closeDialog() {
+       j$('#dialog2').dialog('close');
+    } 
+    
+     //check for string contains, true if present false otherwise
+    String.prototype.contains = function(str, ignoreCase) {
+         return (ignoreCase ? this.toUpperCase() : this)
+           .indexOf(ignoreCase ? str.toUpperCase() : str) >= 0;
+    };
+    
+     // rendering the related items which matches as per criteria with the input box.   
+     function renderItemAutoComplete() {
+          var oldFn = j$.ui.autocomplete.prototype._renderItem;
+          j$.ui.autocomplete.prototype._renderItem = function( ul, item) {
+          
+              var entry = item.label;
+              var fieldLabel = entry;
+              var strSplitString = entry.split(': '); 
+              var space = [];
+              if(this.term == '') {
+              
+                 var e = entry.split(': ');
+                 if(e[1] == ''){
+                     entry = entry.replace(new RegExp("("+ this.term + ")","gi"),
+                                "<strong style='font-weight:1500;color:Black'>$1</strong>");
+                     var v = j$("<li title='"+fieldLabel+"'></li>").data("item.autocomplete",item).append("<a>"+ entry+ "</a>"); 
+                     return v.appendTo(ul); 
+                 }
+              }else if((strSplitString[1] != '')&&(this.term.contains(':',true))){
+                    if(typeof strSplitString[2] == "undefined") {
+                          
+                        entry = entry.replace(new RegExp("("+ this.term + ")","gi"),
+                                "<strong style='font-weight:1500;color:Black'>$1</strong>");
+                        var v = j$("<li title='"+fieldLabel+"'></li>").data("item.autocomplete",item).append("<a>"+ entry+ "</a>");  
+                        return v.appendTo(ul);
+                    
+                    }else{
+                       
+                    	entry = entry.replace(new RegExp("("+ this.term + ")","gi"),
+                        "<strong style='font-weight:1500;color:Black'>$1</strong>");
+                        var v = j$("<li title='"+fieldLabel+"'></li>").data("item.autocomplete",item).append("<a>"+ entry+ "</a>");
+                        return v.appendTo(ul);
+                    }
+              }else if(!this.term.contains(':',true)) {
+                  var labelLength = strSplitString.length;
+                  var lbl = strSplitString[labelLength-1].toUpperCase();
+                  var entry_lbl = this.term.toUpperCase();
+                 if((lbl.indexOf(entry_lbl) >= 0) || (strSplitString[1]=="")) {
+                     entry = entry.replace(new RegExp("("+ this.term + ")","gi"),
+                                    "<strong style='font-weight:1500;color:Black'>$1</strong>");
+                     var v = j$("<li title='"+fieldLabel+"'></li>").data("item.autocomplete",item).append("<a>"+ entry+ "</a>"); 
+                     return v.appendTo(ul); 
+                 }
+              }else{
+                     entry = entry.replace(new RegExp("("+ this.term + ")","gi"),
+                                    "<strong style='font-weight:1500;color:Black'>$1</strong>");
+                     var v = j$("<li title='"+fieldLabel+"'></li>").data("item.autocomplete",item).append("<a>"+ entry+ "</a>"); 
+                     return v.appendTo(ul);
+              
+              }
+      }           
+    }
+    
+      j$.widget( "custom.autocomplete", j$.ui.autocomplete, {
+        _renderMenu: function( ul, items ) {
+          var that = this,
+        
+            currentCategory = "";
+        j$.each( items, function( index, item ) {
+            if ( item.category != currentCategory ) {
+              ul.append( "<li style='font-style:italic;' class='ui-autocomplete-category'>" + item.category + "</li>" );
+              currentCategory = item.category;
+            }
+             that._renderItem( ul, item );
+          });
+        }
+      });
+      
+    j$(document).ready(function(){
+    
+        var data = {!strFields};
+        isEdit = {!blnIsEditMode};
+        
+        if(isEdit){
+        	
+        	onLoad = true;
+        	receivedData = {!strRetrievedJSON};
+        	//Sorting based on Filter Index
+        	if(receivedData != null) {
+	        	if(receivedData.length > 1){
+		        	for(var i = 0; i < receivedData.length - 1; i++){
+		        		for(var j = 1; j < receivedData.length; j++){
+		        			
+		        			if(receivedData[i].intFilterOrder > receivedData[j].intFilterOrder){
+		        			
+		        				var temp = receivedData[i];
+		        				receivedData[i] = receivedData[j];
+		        				receivedData[j] = temp; 
+		        			} 
+		        		}
+		        	}
+	        	}
+	        }	
+        }
+
+	//Populate the Filter Criterias and Filter Logic as Retrieved from the system
+	if(isEdit){
+		if(receivedData != null)
+			populateRecievedData(receivedData);
+		else{
+			for(var i = 0; i < 2; i++){
+            	addDynamicFilter(null,i);
+            }
+		}
+		onLoad = false;
+	}
+		
+	if(!isEdit){		        
+        for(var i = 0; i < 2; i++){
+            addDynamicFilter(null,i);
+        }
+    }
+    
+    renderItemAutoComplete();
+        
+	j$('.fieldFilter').live('click', function() {
+    	j$(this).autocomplete({ minLength: 0 });    
+        j$(this).autocomplete("search",j$(this).val());
+	});
+       
+    j$('.fieldFilter').autocomplete({
+        delay: 0,
+        minLength: 0,
+        source: data,
+        select: function( event, ui ) {
+            j$(this).autocomplete("search",ui.item.label);
+             var idComponent = j$(this).attr('id');
+                    var fieldlabel = ui.item.label; 
+                    //changes for consolidaation pt 1
+                   var blnIsLastChar = isLastCharacter(fieldlabel);
+                   var n = fieldlabel.substring(fieldlabel.length,(fieldlabel.length-2));
+                   var n1 = fieldlabel.substring(fieldlabel.length,(fieldlabel.length-1));
+                   if(n == ': ' || n1==':')
+                      blnIsLastChar = true;
+                     // end of change 
+                   if(blnIsLastChar){
+                        //change pt 1
+                        j$("#menu").css("display","block");
+                    	if(idComponent.substring(0,11) == 'sourceField') {
+                        if(fieldlabel.split(':')[2] != '') {
+                             generateUl(this,ui.item.label,1,'source'); 
+                        }else{
+                             generateUl2(this,ui.item.label,1,'source'); 
+                        }                                                          
+	                    }else{
+	                        if(fieldlabel.split(':')[2] != '') {
+	                             generateUl(this,ui.item.label,1,'target'); 
+	                        }else{
+	                             generateUl2(this,ui.item.label,1,'target'); 
+	                        }                                                         
+	                    } 
+						if(!document.getElementById("menu").className.match(/(?:^|\s)ui-widget-content(?!\S)/)){
+							document.getElementById("menu").className += ' ui-widget-content';
+						}	                  
+                   }       
+        }
+    });
+        
+	var mouse_is_inside = false;
+
+    j$('#listDiv').hover(function(){ 
+            mouse_is_inside=true; 
+        }, function(){ 
+            mouse_is_inside=false; 
+    });
+
+    j$("body").mouseup(function(){
+        if(! mouse_is_inside) j$('#listDiv').hide();
+    });  
+        
+    });
+    
+	//This method generates the dynamic filters for already saved filters while editing
+	function populateRecievedData(pReceivedData){
+		var data = {!strFields};
+		//Adding the filter
+		var counter = 0;
+		for(var i = 0; i < pReceivedData.length; i++){
+			counter++;
+			addDynamicFilter(null,i);
+			
+			document.getElementById('sourceField' + intFilterIndex).value = pReceivedData[i].strSourceFieldLabel;
+			
+			//Populating the hidden source text fields
+			for(var j = 0; j < data.length; j++){
+				if((pReceivedData[i].strSourceFieldApi == data[j].strAPIName) &&
+				   (pReceivedData[i].strSrcFieldFirst == data[j].strField1) &&
+				   (pReceivedData[i].strSrcObjFirst == data[j].strObject1) &&
+				   (pReceivedData[i].strSrcObjSecond == data[j].strObject2) &&
+				   (pReceivedData[i].strSrcFieldSecond == data[j].strField2)){
+					document.getElementById('customSrcField' + intFilterIndex).value = generateCustomExpression(data[j]);
+					document.getElementById('sourceField' + intFilterIndex).value = 
+									getFieldLabel(document.getElementById('customSrcField' + intFilterIndex).value);
+					break;
+				}
+			}
+
+			//populating lookup icons subject to source field type
+			sourceFieldLookup((i+1));
+		
+			if(pReceivedData[i].blnTargetIsField)
+				document.getElementById('fieldFilter' + intFilterIndex).value = 'Field';
+			else
+				document.getElementById('fieldFilter' + intFilterIndex).value = 'Value';
+		
+			//implementing auto complete functionality on target fields with field/value as field
+			fieldValueValidator((i+1));		
+			
+			/*
+			//Populate Target Field
+			if(pReceivedData[i].blnTargetIsField)
+				document.getElementById('targetField' + intFilterIndex).value = pReceivedData[i].strTargetFieldLabel;
+			//Populate Target Value
+			else
+				document.getElementById('targetField' + intFilterIndex).value = pReceivedData[i].strTargetValues;
+			*/
+			
+			//Populate Target Value
+			if(!pReceivedData[i].blnTargetIsField)
+				document.getElementById('targetField' + intFilterIndex).value = pReceivedData[i].strTargetValues;
+			
+			//Populating the hidden target text fields
+			if(pReceivedData[i].blnTargetIsField){
+			
+				for(var j = 0; i < data.length; j++){
+				
+					if((pReceivedData[i].strTargetFieldApi == data[j].strAPIName) &&
+				   	   (pReceivedData[i].strTrgtFieldFirst == data[j].strField1) &&
+				       (pReceivedData[i].strTrgtObjFirst == data[j].strObject1) &&
+				       (pReceivedData[i].strTrgtObjSecond == data[j].strObject2) &&
+				   	   (pReceivedData[i].strTrgtFieldSecond == data[j].strField2)){
+						document.getElementById('customTrgtField' + intFilterIndex).value = generateCustomExpression(data[j]);
+						document.getElementById('targetField' + intFilterIndex).value = 
+											getFieldLabel(document.getElementById('customTrgtField' + intFilterIndex).value);						
+						break;
+					}
+				}
+			}
+			
+			//populating the relevant operators
+			populateOperators((i+1), data[j].strOperators);
+			
+			document.getElementById('operator' + intFilterIndex).value = pReceivedData[i].strOperator;
+		}
+		addDynamicFilter(null,counter+1);
+		showHideFilterLogic();
+	}
+    
+    //This method performs the check if the given string starts with the string to check
+    //Returns true if it does
+    function isStartsWith(pStringToCheck, pStringToCheckWith) {
+    
+        var strSubString = pStringToCheck.substring(0, pStringToCheckWith.length);
+
+        if(strSubString==pStringToCheckWith){
+            return true;
+        }   
+        return false;
+    }
+    
+    //check for string present in the array,true if present false otherwise
+    Array.prototype.contains = function(obj) {
+        var i = this.length; 
+        while (i--) {
+            if (this[i] == obj) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    // generating the custom expression required for getting the related fields details on client side.
+    function generateCustomExpression(pItem) {
+    
+        var strCustomData;
+        
+		strCustomData = 'LBL#S';
+        if(pItem == null)
+            strCustomData += 'null';
+        else
+            strCustomData += pItem.label; 
+        strCustomData += 'LBL#E';        
+        
+		strCustomData += 'API#S';
+        if(pItem == null)
+            strCustomData += 'null';
+        else
+            strCustomData += pItem.strAPIName; 
+        strCustomData += 'API#E';        
+        
+		strCustomData += 'FTYPE#S';
+        if(pItem == null)
+            strCustomData += 'null';
+        else
+            strCustomData += pItem.strFieldType; 
+        strCustomData += 'FTYPE#E';        
+        
+		strCustomData += 'PICK#S';
+        if(pItem == null)
+            strCustomData += 'null';
+        else
+            strCustomData += pItem.strPickListValues; 
+        strCustomData += 'PICK#E';        
+        
+		strCustomData += 'OP#S';
+        if(pItem == null)
+            strCustomData += 'null';
+        else
+            strCustomData += pItem.strOperators; 
+        strCustomData += 'OP#E';
+        
+		strCustomData += 'TARGET#S';
+        if(pItem == null)
+            strCustomData += 'null';
+        else
+            strCustomData += pItem.strCompatibleTargetFieldTypes; 
+        strCustomData += 'TARGET#E';        
+        
+		strCustomData += 'OBJ1#S';
+        if(pItem == null)
+            strCustomData += 'null';
+        else
+            strCustomData += pItem.strObject1; 
+        strCustomData += 'OBJ1#E';
+        
+        strCustomData += 'OBJ2#S';
+        if(pItem == null)
+            strCustomData += 'null';
+        else
+            strCustomData += pItem.strObject2; 
+        strCustomData += 'OBJ2#E';
+        
+        strCustomData += 'FLD1#S';
+        if(pItem == null)
+            strCustomData += 'null';
+        else
+            strCustomData += pItem.strField1; 
+        strCustomData += 'FLD1#E';
+        
+        strCustomData += 'FLD2#S';
+        if(pItem == null)
+            strCustomData += 'null';
+        else
+            strCustomData += pItem.strField2; 
+        strCustomData += 'FLD2#E';
+        
+        strCustomData += 'SOAP#S';
+        if(pItem == null)
+            strCustomData += 'null';
+        else
+            strCustomData += pItem.strSoapType; 
+        strCustomData += 'SOAP#E';
+
+		strCustomData += 'REFOBJ1#S';
+        if(pItem == null)
+            strCustomData += 'null';
+        else
+            strCustomData += pItem.strRelationalRefObject1; 
+        strCustomData += 'REFOBJ1#E';
+        
+        strCustomData += 'REFOBJ2#S';
+        if(pItem == null)
+            strCustomData += 'null';
+        else
+            strCustomData += pItem.strRelationalRefObject2; 
+        strCustomData += 'REFOBJ2#E';
+
+        return strCustomData;
+    }
+    
+    //This method adds the Addidtional Field Filter Criteria Dynamically
+    function addDynamicFilter(pType,pFilterIndex){
+    
+       var data = {!strFields};
+       var indexId = '';
+       if(pType=='source'){
+       		 indexId = 'sourceField' + (intFilterIndex);
+       }
+       if(pType=='target'){
+       		 indexId = 'targetField' + (intFilterIndex);
+       }
+        if(intFilterIndex <= 15){
+            if((intFilterIndex > 1) && (!onLoad)){
+                var lastIndexValue = '';
+                lastIndexValue = document.getElementById(indexId).value;
+            }
+            if(lastIndexValue != '' && intFilterIndex < 15){
+                var strDynamicFilter = createDynamicFilter();
+                j$(strDynamicFilter).appendTo('.tblFieldFilter');
+            } 
+            
+            
+         var blnPreventOnChange = false;
+         
+            //The Mehtod gets invoked as soon as any field is selected from Source Field Auto Complete
+            j$(".fieldFilter").autocomplete({
+                source: data,
+                change: function( event, ui ) {
+                
+                    var idComponent = j$(this).attr('id');
+                    
+                    populateCustomField(idComponent, pFilterIndex, ui);
+                    sourceFieldLookup(pFilterIndex);
+                    
+                    //Populate all the operators dynamically only when Source Field is being changed
+                    if(idComponent.match('sourceField') != null && ui.item != null)
+                        populateOperators(pFilterIndex, ui.item.strOperators);
+                    fieldValidation(idComponent, pFilterIndex);
+                    if((document.getElementById('sourceField'+pFilterIndex).value) == '')
+                    	populateOperators(pFilterIndex,'');
+                },
+                select: function( event, ui ) {
+                    //alert(ui.item.label);
+                    var idComponent = j$(this).attr('id');
+                    var fieldlabel = ui.item.label; 
+                    
+                    
+                    var index = idComponent.substring(11,idComponent.length);
+                    populateCustomField(idComponent, index, ui);
+                    sourceFieldLookup(index);
+                    //Populate all the operators dynamically only when Source Field is being changed
+                    if(idComponent.match('sourceField') != null && ui.item != null)
+                        populateOperators(index, ui.item.strOperators);
+                    fieldValidation(idComponent, pFilterIndex);
+                    if((document.getElementById('sourceField'+pFilterIndex).value) == '')
+                        populateOperators(pFilterIndex,'');
+                        
+                        
+                    //changes for consolidaation pt 1
+                   var blnIsLastChar = isLastCharacter(fieldlabel);
+                   var n = fieldlabel.substring(fieldlabel.length,(fieldlabel.length-2));
+                   var n1 = fieldlabel.substring(fieldlabel.length,(fieldlabel.length-1));
+                   if(n == ': ' || n1==':')
+                      blnIsLastChar = true;
+                     // end of change 
+                   if(blnIsLastChar){
+                        //change pt 1
+                        j$("#menu").css("display","block");
+                        if(idComponent.substring(0,11) == 'sourceField') {
+                        if(fieldlabel.split(':')[2] != '') {
+                             generateUl(this,ui.item.label,pFilterIndex,'source'); 
+                        }else{
+                             generateUl2(this,ui.item.label,pFilterIndex,'source'); 
+                        }                                                          
+                        }else{
+                            if(fieldlabel.split(':')[2] != '') {
+                                 generateUl(this,ui.item.label,pFilterIndex,'target'); 
+                            }else{
+                                 generateUl2(this,ui.item.label,pFilterIndex,'target'); 
+                            }                                                         
+                        } 
+                        if(!document.getElementById("menu").className.match(/(?:^|\s)ui-widget-content(?!\S)/)){
+                            document.getElementById("menu").className += ' ui-widget-content';
+                        }                     
+                   }       
+                },
+                open: function( event, ui ) {
+                   j$("#menu").empty();
+                }
+            });
+            
+             j$('.fieldFilter').click(function () {
+                //alert('clicked');
+                j$(this).autocomplete({ minLength: 0 });    
+                j$(this).autocomplete("search",(j$(this).val()));
+            });
+        }
+    }
+    
+    //generating list of fields based on click of autoComplete
+    function generateUl(that,pField,pFilterIndex,type) {
+        
+        genrateListHTML(pField,that,pFilterIndex,type);
+    }
+    
+    //generating list of fields on click of autComplete
+    function generateUl2(that,pField,pFilterIndex,type) {
+         ids = that.id;
+          var offset = j$('#'+ids).offset();
+          var topPos = offset.top;
+          var leftPos = offset.left;
+          var customField = '';
+          if(type=='source'){
+            customField = 'customSrcField'+pFilterIndex; 
+          }else{
+            customField = 'customTrgtField'+pFilterIndex; 
+          }
+          genrateSecondLevelListHTML(topPos,leftPos,pField,customField,pFilterIndex);
+    }
+    
+    var ids = '';
+    var generatedCodeforDiv = '';
+    
+    //generating first level dynamic html bases on the click event in autocomplete 
+    function genrateListHTML(pField,that,pFilterIndex,type) {
+         j$("#menu").empty();
+         var data = {!strFields};
+         var result = '';
+         var customField = '';
+         if(type=='source'){
+            customField = '"'+'customSrcField'+pFilterIndex+'"';
+         }else{
+            customField = '"'+'customTrgtField'+pFilterIndex+'"';
+         }
+         var DIV = document.getElementById("listDiv");
+         var UL = document.getElementById('menu');
+          ids = that.id;
+          var offset = j$('#'+ids).offset();
+         for(var i=0;i<data.length;i++){
+             if((data[i].label.split(':')[2] == '') || (typeof data[i].label.split(':')[2] == 'undefined')){
+                if(isStartsWith(data[i].label,pField)){
+                     var li = document.createElement('li');
+                     var custonExp = generateCustomExpression(data[i]);
+                     var subStr = data[i].label.substring(pField.length,data[i].label.length);
+                     li.setAttribute("id", i);
+                     li.setAttribute("class",'x-.-list-item ui-menu-item');
+                     li.setAttribute("role","menuitem");
+                     var strStrong = "<strong>"+pField+"</strong>";
+                     li.innerHTML = "<a title='"+data[i].label+"' class='ui-corner-all' id='a"+i+"' onmouseover='statehover(this);' onmouseout='stateout(this);' role='menuitem' onClick='optionClick(this,"+(offset.top)+","+(offset.left)+","+i+","+customField+","+pFilterIndex+");'>"+strStrong+subStr+"</a><input id='input"+i+"' value='"+custonExp+"' style='display:none'></input>"; 
+                     result += data[i].label;
+                     UL.appendChild(li); 
+               }
+             
+             }
+            
+         } 
+            j$('#listDiv').css("top",(offset.top-95));
+            j$('#listDiv').css("left",(offset.left-10));
+            j$('#listDiv').css("display","block");
+            j$('#menu').css("resize","both");
+    }
+    
+    //generating Second level dynamic html bases on the click event in autocomplete 
+    function genrateSecondLevelListHTML(topPos,leftPos,pField,pCustomField,pFilterIndex)    {
+         j$("#menu").empty();
+         var data = {!strFields};
+         var result = '';
+         var customField = '';
+         var DIV = document.getElementById("listDiv");
+         var UL = document.getElementById('menu');
+         pCustomField = '"' +pCustomField+ '"';
+         for(var i=0;i<data.length;i++){
+             if((data[i].label.split(':')[2] != '')) {
+                if(isStartsWith(data[i].label,pField)){
+                     var li = document.createElement('li');
+                     var custonExp = generateCustomExpression(data[i]);
+                     var subStr = data[i].label.substring(pField.length,data[i].label.length);
+                     li.setAttribute("id", i);
+                     li.setAttribute("class",'x-combo-list-item ui-menu-item');
+                     li.setAttribute("role","menuitem");
+                     var strStrong = "<strong>"+pField+"</strong>";
+                     li.innerHTML = "<a title='"+data[i].label+"' class='ui-corner-all' id='a"+i+"' onmouseover='statehover(this);' onmouseout='stateout(this);' role='menuitem' onClick='optionClick(this,"+(topPos)+","+(leftPos)+","+i+","+pCustomField+","+pFilterIndex+");'>"+strStrong+subStr+"</a><input id='input"+i+"' value='"+custonExp+"' style='display:none'></input>"; 
+                     result += data[i].label;
+                     UL.appendChild(li); 
+               }
+             }
+         } 
+
+            j$('#listDiv').css("top",(topPos-95));
+            j$('#listDiv').css("left",(leftPos-10));
+            j$('#listDiv').css("display","block");
+            j$('#menu').css("resize","both");
+    }
+    
+    function statehover(that){
+        var id = that.id;
+        var A = document.getElementById(id);
+        A.setAttribute('class','ui-corner-all ui-state-hover');
+    }
+    
+    function stateout(that) {
+        var id = that.id;
+        var A = document.getElementById(id);
+        A.setAttribute('class','ui-corner-all');
+    }
+    
+    function optionClick(optionId,topPos,leftPos,index,pCustomField,pFilterIndex) {
+       var j$this = j$(optionId);
+      var selectedText = j$this.text();
+      var inputTextId = ids;
+      var splitSelectedLabel = selectedText.split(": ");
+      if(splitSelectedLabel[1] == "")
+          return false;
+      var customExp = j$('#input'+index).val();
+      var n = selectedText.substring(selectedText.length,(selectedText.length-1));
+      
+      if(n != ':') {
+        j$('#'+inputTextId).val(selectedText);
+        isOptionSelected = true;
+        //Append the customExp string into the custom hidden field
+        setTimeout(function() {
+            document.getElementById(pCustomField).value = customExp;
+            isOptionSelected = false;
+            fieldValidation(inputTextId, pFilterIndex);
+            sourceFieldLookup(pFilterIndex);
+            
+           if(pCustomField.substring(0,14) == 'customSrcField')
+                populateOperators(pFilterIndex, getFieldOperators(customExp));            
+        },200);
+        
+        j$('#listDiv').css("display","none");
+      }else{
+        genrateSecondLevelListHTML(topPos,leftPos,selectedText,pCustomField,pFilterIndex);
+      }
+    }
+    
+    function hideDiv() {
+      var DIV = document.getElementById("listDiv");
+      j$('#listDiv').css("display","none");
+    }
+    
+    //This function populates the custom fields that are hidden and stores the 
+    //metadata for the selected field from Source/Target Field Auto Complete
+    function populateCustomField(pIdComponent, pFilterIndex, pUi){
+       
+        var strCustomData;
+        strCustomData = 'LBL#S';
+        if(pUi.item == null)
+            strCustomData += 'null';
+        else
+            strCustomData += pUi.item.label; 
+        strCustomData += 'LBL#E';
+        
+        strCustomData += 'API#S';
+        if(pUi.item == null)
+            strCustomData += 'null';
+        else
+            strCustomData += pUi.item.strAPIName; 
+        strCustomData += 'API#E';
+        
+        strCustomData += 'FTYPE#S';
+        if(pUi.item == null)
+            strCustomData += 'null';
+        else
+            strCustomData += pUi.item.strFieldType;
+        strCustomData += 'FTYPE#E';
+        
+        strCustomData += 'PICK#S';
+        if(pUi.item == null)
+            strCustomData += 'null';
+        else
+            strCustomData += pUi.item.strPickListValues;
+        strCustomData += 'PICK#E';
+        
+        strCustomData += 'OP#S';
+        if(pUi.item == null)
+            strCustomData += 'null';
+        else
+            strCustomData += pUi.item.strOperators;
+        strCustomData += 'OP#E';
+        
+        strCustomData += 'TARGET#S';
+        if(pUi.item == null)
+            strCustomData += 'null';
+        else
+            strCustomData += pUi.item.strCompatibleTargetFieldTypes;
+        strCustomData += 'TARGET#E';
+        
+ 		strCustomData += 'OBJ1#S';
+        if(pUi.item == null)
+            strCustomData += 'null';
+        else
+            strCustomData += pUi.item.strObject1; 
+        strCustomData += 'OBJ1#E';
+        
+        strCustomData += 'OBJ2#S';
+        if(pUi.item == null)
+            strCustomData += 'null';
+        else
+            strCustomData += pUi.item.strObject2; 
+        strCustomData += 'OBJ2#E';
+        
+        strCustomData += 'FLD1#S';
+        if(pUi.item == null)
+            strCustomData += 'null';
+        else
+            strCustomData += pUi.item.strField1; 
+        strCustomData += 'FLD1#E';
+        
+        strCustomData += 'FLD2#S';
+        if(pUi.item == null)
+            strCustomData += 'null';
+        else
+            strCustomData += pUi.item.strField2; 
+        strCustomData += 'FLD2#E';
+        
+        strCustomData += 'SOAP#S';
+        if(pUi.item == null)
+            strCustomData += 'null';
+        else
+            strCustomData += pUi.item.strSoapType; 
+        strCustomData += 'SOAP#E';
+        
+		strCustomData += 'REFOBJ1#S';
+        if(pUi.item == null)
+            strCustomData += 'null';
+        else
+            strCustomData += pUi.item.strRelationalRefObject1; 
+        strCustomData += 'REFOBJ1#E';
+        
+        strCustomData += 'REFOBJ2#S';
+        if(pUi.item == null)
+            strCustomData += 'null';
+        else
+            strCustomData += pUi.item.strRelationalRefObject2; 
+        strCustomData += 'REFOBJ2#E';        
+        
+        //If Source Field is Selected
+        if(isStartsWith(pIdComponent, 'sourceField')){
+            
+            var idCustomField = 'customSrcField' + pFilterIndex;
+            document.getElementById(idCustomField).value = strCustomData;
+        }
+        
+        //If Target Field is Selected
+        if(isStartsWith(pIdComponent, 'targetField')){
+            
+            var idCustomField = 'customTrgtField' + pFilterIndex;
+            document.getElementById(idCustomField).value = strCustomData;
+        }
+    }
+    
+    //This functions toggles the auto complete functionality for Target Field value depending upon
+    //the value selected in fieldFilter
+    function fieldValueValidator(pCurrentFilterIndex){
+        
+        var data = {!strFields};
+        
+        var idFieldFilter = 'fieldFilter' + pCurrentFilterIndex;
+        var idTraget = 'targetField' + pCurrentFilterIndex;
+        var idtargetFieldLookup = 'targetFieldLookup' + pCurrentFilterIndex;
+        var fieldDataType = '';
+        
+        var customExp = document.getElementById('customSrcField'+pCurrentFilterIndex).value;
+        fieldDataType = getFieldDataType(customExp);
+        if((document.getElementById(idFieldFilter).value == 'Value')||(fieldDataType=='Picklist')||((fieldDataType=='Boolean'))){
+        	
+	        if((document.getElementById(idTraget).value) != null){
+                var idSourceError = 'targetError' + pCurrentFilterIndex;
+                if(!document.getElementById(idSourceError).className.match(/(?:^|\s)hidden(?!\S)/)){
+                    document.getElementById(idSourceError).className += ' hidden';
+                }
+	        }        
+        
+            if((document.getElementById(idFieldFilter).value == 'Value')){
+                document.getElementById(idTraget).removeAttribute("placeholder");
+                document.getElementById(idTraget).value = '';
+                if(document.getElementById(idTraget).className.match(/(?:^|\s)fieldFilter(?!\S)/))
+                document.getElementById(idTraget).className = ''; 
+                j$("#"+idTraget).autocomplete( "disable" );
+                if(!document.getElementById(idtargetFieldLookup).className.match(/(?:^|\s)invisible(?!\S)/)){
+                    document.getElementById(idtargetFieldLookup).className += ' invisible';
+                }   
+            }
+            if((fieldDataType=='Picklist')|| (fieldDataType=='Boolean')) {
+                document.getElementById(idTraget).removeAttribute("placeholder");
+                document.getElementById(idTraget).value = '';
+                j$("#"+idTraget).autocomplete( "disable" );
+                document.getElementById(idtargetFieldLookup).className = 'lookupIcon';
+            }
+            document.getElementById(idTraget).value = document.getElementById('hiddenValue' + pCurrentFilterIndex).value;
+        }
+        
+        if(document.getElementById(idFieldFilter).value == 'Field'){
+        	document.getElementById('hiddenValue' + pCurrentFilterIndex).value = document.getElementById(idTraget).value;
+        	if((document.getElementById(idTraget).value) != null){
+        		document.getElementById(idTraget).value = '';
+        	}
+            document.getElementById(idTraget).setAttribute("placeholder", "Begin typing to search for a field...");
+            document.getElementById(idTraget).className = 'fieldFilter';
+            j$("#"+idTraget).autocomplete( "enable" );
+            document.getElementById(idtargetFieldLookup).className = 
+                document.getElementById(idtargetFieldLookup).className.replace(/(?:^|\s)invisible(?!\S)/g , '');
+            
+            j$(".fieldFilter").autocomplete({
+                source: data,
+                select: function( event, ui ) {
+                	//alert('__');
+                }
+            });
+        }
+    }
+    
+    //This function checks whether the selected/entered field is a valid field or not
+    //If the selected field is not a valid field, the error message for the same is generated  
+    function fieldValidation(pIdComponent, pCurrentFilterIndex){
+    
+    	if(!isOptionSelected){
+	        var idSourceField = 'sourceField' + pCurrentFilterIndex;
+	        var idTargetField = 'targetField' + pCurrentFilterIndex;
+	        
+	        var idCustomField;
+	        var idSrcTargetField = '';
+	        
+	        //If Source Field is Selected
+	        if(isStartsWith(pIdComponent, 'sourceField')){
+	            idCustomField = 'customSrcField' + pCurrentFilterIndex;
+	            idSrcTargetField = idSourceField;
+	        }
+	        //If Target Field is Selected
+	        if(isStartsWith(pIdComponent, 'targetField')){
+	            idCustomField = 'customTrgtField' + pCurrentFilterIndex;
+	            idSrcTargetField = idTargetField;
+	        }
+	        
+	        var strApi;
+	        var strCustomField = document.getElementById(idCustomField).value;
+	        if((document.getElementById(idSrcTargetField).value)==''){
+	            if(isStartsWith(idSrcTargetField, 'sourceField')){
+	                var idSourceError = 'sourceError' + pCurrentFilterIndex;
+	                if(!document.getElementById(idSourceError).className.match(/(?:^|\s)hidden(?!\S)/)){
+	                    document.getElementById(idSourceError).className += ' hidden';
+	                }
+	            }
+	            if(isStartsWith(idSrcTargetField, 'targetField')){
+	                var idSourceError = 'targetError' + pCurrentFilterIndex;
+	                if(!document.getElementById(idSourceError).className.match(/(?:^|\s)hidden(?!\S)/)){
+	                    document.getElementById(idSourceError).className += ' hidden';
+	                }
+	            }        	
+	        }else if(strCustomField != null){
+	            var intStartIndex = strCustomField.indexOf('API#S');  
+	            var intEndIndex = strCustomField.indexOf('API#E');
+	            strApi = strCustomField.substring((intStartIndex + 5), intEndIndex);
+	            //Hiding the field validation error message
+	            if(isStartsWith(pIdComponent, 'sourceField')){
+	                var idSourceError = 'sourceError' + pCurrentFilterIndex;
+	                if(!document.getElementById(idSourceError).className.match(/(?:^|\s)hidden(?!\S)/)){
+	                    document.getElementById(idSourceError).className += ' hidden';
+	                }
+	            }
+	            if(isStartsWith(pIdComponent, 'targetField')){
+	                var idSourceError = 'targetError' + pCurrentFilterIndex;
+	                if(!document.getElementById(idSourceError).className.match(/(?:^|\s)hidden(?!\S)/)){
+	                    document.getElementById(idSourceError).className += ' hidden';
+	                }
+	            }
+	        }
+	        //Displaying the Error Message
+	        if(strCustomField == null || strApi == 'null' || strApi == ''){
+	        
+	            if(isStartsWith(pIdComponent, 'sourceField')){
+	                var idSourceError = 'sourceError' + pCurrentFilterIndex;
+	                document.getElementById(idSourceError).className = 
+	                    document.getElementById(idSourceError).className.replace(/(?:^|\s)hidden(?!\S)/g , '');             
+	            }
+	            if(isStartsWith(pIdComponent, 'targetField')){
+	                var idSourceError = 'targetError' + pCurrentFilterIndex;
+	                document.getElementById(idSourceError).className = 
+	                    document.getElementById(idSourceError).className.replace(/(?:^|\s)hidden(?!\S)/g , '');
+	                document.getElementById(idSourceError).innerHTML = 'Error: Field not found';
+	            }   
+	        }    	
+    	}
+    }
+    
+    //This function populates the appropriate operators to the corresponding filter
+    //as and when the user selects any valid field from source field section
+    function populateOperators(pFilterIndex, pStrOperators){
+        //alert(pStrOperators);
+        var opCurrent = document.getElementById('operator' + pFilterIndex).value;
+        var idCustomSrcField = 'customSrcField' + pFilterIndex;
+        
+        var idOperator = 'operator' + pFilterIndex;
+        
+        var strCustomField = document.getElementById(idCustomSrcField).value;
+        var strApi; 
+        
+        if(strCustomField != null){
+            var intStartIndex = strCustomField.indexOf('API#S');  
+            var intEndIndex = strCustomField.indexOf('API#E');
+            strApi = strCustomField.substring((intStartIndex + 5), intEndIndex);
+        }        
+        if(pStrOperators == ''){
+        	document.getElementById(idOperator).options.length = 0;
+           var lstSelect = document.getElementById(idOperator);        
+           var operators = pStrOperators.split(',');
+           
+            //Inserting the 'None' Option in the dropdown
+            var noneOperator = document.createElement('option');
+            noneOperator.setAttribute('value','None');
+            noneOperator.appendChild(document.createTextNode('--None--'));
+            lstSelect.appendChild(noneOperator);
+        }else if(pStrOperators != null && strApi != null && strApi != 'null') {
+
+           document.getElementById(idOperator).options.length = 0;
+           var lstSelect = document.getElementById(idOperator);        
+           var operators = pStrOperators.split(',');
+           
+            //Inserting the 'None' Option in the dropdown
+            var noneOperator = document.createElement('option');
+            noneOperator.setAttribute('value','None');
+            noneOperator.appendChild(document.createTextNode('--None--'));
+            lstSelect.appendChild(noneOperator);
+            
+            for(var i = 0; i < operators.length; i++){
+                var operator = document.createElement('option');
+                operator.setAttribute('value',operators[i]);
+                operator.appendChild(document.createTextNode(operators[i]));
+                lstSelect.appendChild(operator);
+            }
+            
+        	//PreSlected Operator Validation
+        	if(opCurrent != 'none'){
+        		for(var j = 0; j < lstSelect.length; j++){
+        			if(opCurrent == lstSelect[j].value){
+        				document.getElementById('operator' + pFilterIndex).value = lstSelect[j].value;
+        				break; 
+        			}
+        		}
+        	}
+        }
+    }
+    
+    //This method toggles the display of target field lookup icon based on the type of the 
+    //source field selected. Displays the lookup icon only if the field selected is of type
+    //boolean/picklist 
+    function sourceFieldLookup(pFilterIndex){
+        
+        var idCustomSrcField = 'customSrcField' + pFilterIndex;
+        var idFieldFilter = 'fieldFilter' + pFilterIndex;
+        var idTargetFieldLookup = 'targetFieldLookup' + pFilterIndex;
+        
+        if(document.getElementById(idFieldFilter).value != 'Field'){
+            
+            var strCustomSrcField = document.getElementById(idCustomSrcField).value;
+            if(strCustomSrcField != null){
+                
+                var intStartIndex = strCustomSrcField.indexOf('FTYPE#S');  
+                var intEndIndex = strCustomSrcField.indexOf('FTYPE#E');
+                var strFieldType = strCustomSrcField.substring((intStartIndex + 7), intEndIndex);
+                
+                //Add the lookup icon
+                if(strFieldType == 'Boolean' || strFieldType == 'Picklist'){
+                    
+                    if(document.getElementById(idTargetFieldLookup).className.match(/(?:^|\s)invisible(?!\S)/)){
+                        document.getElementById(idTargetFieldLookup).className = 
+                            document.getElementById(idTargetFieldLookup).className.replace(/(?:^|\s)invisible(?!\S)/g , '');
+                    }                   
+                }
+                //If it's any other datatype, hide the lookup icon
+                else{
+                    if(!document.getElementById(idTargetFieldLookup).className.match(/(?:^|\s)invisible(?!\S)/)){
+                        document.getElementById(idTargetFieldLookup).className += ' invisible';
+                    }
+                }
+            }
+        }
+    }   
+    
+    //This method toggles the display mode of Filter Logic for the added filter logic on click
+    //of 'Add Filter Logic' link
+    function showHideFilterLogic(pThis){
+        
+		var j$this = j$(pThis);
+        
+        var idFilterLogic = 'filterLogic';
+        var idLblFilterLogic = 'lblFilterLogic';
+        var idTxtFilterLogic = 'txtFilterLogic';
+        var idLblCreateCondition = 'lblCreateCondition';
+        
+        //Hiding the filter logic input
+        if((!document.getElementById(idLblFilterLogic).className.match(/(?:^|\s)hidden(?!\S)/)) &&
+           (!document.getElementById(idTxtFilterLogic).className.match(/(?:^|\s)hidden(?!\S)/)) &&
+           (!document.getElementById(idLblCreateCondition).className.match(/(?:^|\s)hidden(?!\S)/))){
+            blnIsLogicShown = false;
+            hideFilterNumbers();
+            j$this.text('Add Filter Logic...');
+            document.getElementById(idLblFilterLogic).className += ' hidden';
+            document.getElementById(idTxtFilterLogic).className += ' hidden';
+            document.getElementById(idLblCreateCondition).className += ' hidden';
+            document.getElementById('tips').className += ' hidden';
+     		if(!document.getElementById('filterLogicError').className.match(/(?:^|\s)hidden(?!\S)/))                
+              	document.getElementById('filterLogicError').className += ' hidden';
+        }
+        //Displaying the filter logic input
+        else if((document.getElementById(idLblFilterLogic).className.match(/(?:^|\s)hidden(?!\S)/)) &&
+           		(document.getElementById(idTxtFilterLogic).className.match(/(?:^|\s)hidden(?!\S)/)) &&
+           		(document.getElementById(idLblCreateCondition).className.match(/(?:^|\s)hidden(?!\S)/))){
+            blnIsLogicShown = true;
+            showFilterNumbers();
+            j$this.text('Clear Filter Logic');
+            document.getElementById(idLblFilterLogic).className = 
+                            document.getElementById(idLblFilterLogic).className.replace(/(?:^|\s)hidden(?!\S)/g , '');
+            document.getElementById(idTxtFilterLogic).className = 
+                            document.getElementById(idTxtFilterLogic).className.replace(/(?:^|\s)hidden(?!\S)/g , '');
+            document.getElementById(idLblCreateCondition).className = 
+                            document.getElementById(idLblCreateCondition).className.replace(/(?:^|\s)hidden(?!\S)/g , '');
+            document.getElementById('tips').className = 
+                            document.getElementById('tips').className.replace(/(?:^|\s)hidden(?!\S)/g , '');
+            
+            //Adding the filter logic string
+            if(!onLoad)             
+            document.getElementById(idTxtFilterLogic).value = populateFilterLogic();
+        }
+    }
+    
+    //This method displays the filter numbers corresponding to the added filters as soon as the user
+    //clicks the 'Add Filter Logic' Link
+    function showFilterNumbers(){
+    	for(var index = 0; index < intFilterIndex; index++){
+    		document.getElementById(index + 1).innerHTML = index + 1 + '. '; 
+    	}
+    }
+    
+    //This method hides the filter numbers and replaces it by 'AND' corresponding to the added filters
+    //as soon as the userclicks the 'Hide Filter Logic' Link
+    function hideFilterNumbers(){
+    	document.getElementById('1').innerHTML = ' ';
+    	for(var index = 1; index < intFilterIndex; index++){
+    		document.getElementById(index + 1).innerHTML = 'AND ';
+    	}
+    }
+    
+    //This method is used to construct the filter logic string based on the number of filter criterias
+    //added
+    function populateFilterLogic(){
+    
+    	var intFilterCount = intFilterIndex;
+    	var strFilterLogic = '';
+    	for(var index = 1; index <= intFilterCount; index++){
+    		
+    		if(isSourceNotNull(index)){
+    			strFilterLogic += index;
+    			strFilterLogic += ' AND ';
+    		}
+    	}
+    	strFilterLogic = strFilterLogic.substr(0, (strFilterLogic.length - 5));
+    	return strFilterLogic;
+    }
+    
+    //This mehtod validates if the source field has been provided or not. This method doesn't checks
+    //for the correctness of the selected source field
+    function isSourceNotNull(pFilterNumber){
+    	
+    	var idSourceField = 'sourceField' + pFilterNumber;
+    	try{
+	    	var valSourceField = document.getElementById(idSourceField).value;
+	    	if(valSourceField != null && valSourceField != '')
+	    	return true;
+    		return false;
+  		}
+		catch(err){
+  			return false;
+  		}
+    }
+    
+    //This method validates the correctness of the source field for the specified filter index
+    //Returns true if the selected source field is correct else flase
+    function validateSourceField(pFilterNumber){
+    
+    	var idSourceField = 'sourceField' + pFilterNumber;
+    	var idCustomSrcField = 'customSrcField' + pFilterNumber;
+    	
+    	var valSourceField = document.getElementById(idSourceField).value;
+    	var strCustomField = document.getElementById(idCustomSrcField).value;
+    	
+    	var strApi = '';
+    	
+        if(strCustomField != null && strCustomField != '' && valSourceField != null && valSourceField != ''){
+            var intStartIndex = strCustomField.indexOf('API#S');  
+            var intEndIndex = strCustomField.indexOf('API#E');
+            strApi = strCustomField.substring((intStartIndex + 5), intEndIndex);
+        }
+		
+    	if(strApi != null && strApi != '' && strApi != 'null')
+    		return true;
+		return false;
+    } 
+    
+    //This method validates the correctness of the target field for the specified filter index
+    //Returns true if the selected target field is correct else flase
+    function validateTargetField(pFilterNumber){
+
+        var idTargetField = 'targetField' + pFilterNumber;
+               
+        if(document.getElementById('fieldFilter'+pFilterNumber).value == 'Field'){
+            var idCustomTrgtField = 'customTrgtField' + pFilterNumber;
+            
+            var idCustomSrcField = 'customSrcField' + pFilterNumber;
+	        var strCustomField = document.getElementById(idCustomSrcField).value;
+	        var strTargetCustomField = document.getElementById(idCustomTrgtField).value;
+	        var strApi = '';
+	        var strObjectApi = '';
+	        var strFieldAPI = '{!strFieldApi}';
+	        var strSourceObjectAPI = '{!strSourceObjApi}';
+	        var strReferencedObjectAPI = '{!strReferencedObject}';
+	        var strTargetApi = '';
+	        var strTargetObjectApi = '';
+	        if(strCustomField != null && strCustomField != '' && strTargetCustomField != null && strTargetCustomField != ''){
+	            var intStartIndex = strCustomField.indexOf('API#S');  
+	            var intEndIndex = strCustomField.indexOf('API#E');
+	            strApi = strCustomField.substring((intStartIndex + 5), intEndIndex);
+	            intStartIndex = strCustomField.indexOf('OBJ1#S');
+	            intEndIndex = strCustomField.indexOf('OBJ1#E');
+	            strObjectApi = strCustomField.substring((intStartIndex + 6), intEndIndex);
+	            
+	            var intStartIndex = strTargetCustomField.indexOf('API#S');  
+	            var intEndIndex = strTargetCustomField.indexOf('API#E');
+	            strTargetApi = strTargetCustomField.substring((intStartIndex + 5), intEndIndex);
+	            intStartIndex = strTargetCustomField.indexOf('OBJ1#S');
+	            intEndIndex = strTargetCustomField.indexOf('OBJ1#E');
+	            strTargetObjectApi = strTargetCustomField.substring((intStartIndex + 6), intEndIndex);
+	        }
+	       
+	       
+	        if((strApi.toLowerCase() == strFieldAPI.toLowerCase() && strObjectApi.toLowerCase() == strSourceObjectAPI.toLowerCase())
+	             || (strTargetApi.toLowerCase() == strFieldAPI.toLowerCase() && strTargetObjectApi.toLowerCase() == strSourceObjectAPI.toLowerCase())){
+			            if(document.getElementById('titleError').className.match(/(?:^|\s)hidden(?!\S)/))                
+				                        document.getElementById('titleError').className = 
+				                            document.getElementById('titleError').className.replace(/(?:^|\s)hidden(?!\S)/g , '');
+				                    document.getElementById('titleError').innerHTML = 'Error: A dependent lookup cannot directly or indirectly refer to itself. $Source.'+strReferencedObjectAPI+'-> $Source.'+strReferencedObjectAPI;
+			        	removeTargetErrors();
+			        	return false;
+			        }else{
+			            document.getElementById('titleError').innerHTML = '';
+	        }
+	        
+            if(strApi != null && strApi != '' && strApi != 'null')
+                return true;
+            return false;   
+        }
+        
+        if(document.getElementById('fieldFilter'+pFilterNumber).value == 'Value'){
+            
+            var idCustomSrcField = 'customSrcField' + pFilterNumber;
+            var strCustomField = document.getElementById(idCustomSrcField).value;
+            
+            var valTargetField = document.getElementById(idTargetField).value;
+            
+            var strSrcType = '';
+            
+            if(strCustomField != null && strCustomField != ''){
+                var intStartIndex = strCustomField.indexOf('FTYPE#S');  
+                var intEndIndex = strCustomField.indexOf('FTYPE#E');
+                strSrcType = strCustomField.substring((intStartIndex + 7), intEndIndex);
+            }           
+            var idTargetError = 'targetError' + pFilterNumber;
+            
+            
+             //Perform validation if Source Field Type is number
+            if((strSrcType == 'Double') || (strSrcType == 'Currency') || (strSrcType == 'Percent') || (strSrcType == 'Integer')){
+                var isNumber = !isNaN(valTargetField);
+                if(!isNumber) {
+                	 if(document.getElementById(idTargetError).className.match(/(?:^|\s)hidden(?!\S)/))                
+                        document.getElementById(idTargetError).className = 
+                            document.getElementById(idTargetError).className.replace(/(?:^|\s)hidden(?!\S)/g , '');
+                    document.getElementById(idTargetError).innerHTML = 'Error: Invalid Number';             
+                    document.getElementById('titleError').innerHTML = '';
+                    return false;
+                
+                }else{
+                     document.getElementById('titleError').innerHTML = '';
+                     document.getElementById(idTargetError).innerHTML = '';
+                	 return true;   
+                }
+            }
+            
+            //Perform validation if Source Field Type is Boolean
+            if(strSrcType == 'Boolean'){
+                if(valTargetField != 'True' && valTargetField != 'False'){
+                    if(document.getElementById(idTargetError).className.match(/(?:^|\s)hidden(?!\S)/))                
+                        document.getElementById(idTargetError).className = 
+                            document.getElementById(idTargetError).className.replace(/(?:^|\s)hidden(?!\S)/g , '');
+                    document.getElementById(idTargetError).innerHTML = 'Error: Use "True" or "False" ';             
+                    document.getElementById('titleError').innerHTML = '';
+                    return false;
+                }else{
+                	document.getElementById(idTargetError).innerHTML = '';
+                    document.getElementById('titleError').innerHTML = '';
+                }
+                if(valTargetField == 'True' || valTargetField == 'False'){
+                
+                    if(!document.getElementById(idTargetError).className.match(/(?:^|\s)hidden(?!\S)/))                
+                        document.getElementById(idTargetError).className += ' hidden'; 
+                }
+                document.getElementById('titleError').innerHTML = '';
+                return true;                    
+            }
+            
+            //Perform validation if Source Field Type is Date/Datetime
+            if(strSrcType == 'Date'){
+                if(valTargetField != '') {
+	                var blnIsValidDate = isValidDate(valTargetField);
+	                if(!blnIsValidDate){
+	                    var d = new Date();
+	                    var date = (d.getMonth()+1)+'/'+d.getDate()+'/'+d.getFullYear(); 
+	                    if(document.getElementById(idTargetError).className.match(/(?:^|\s)hidden(?!\S)/))                
+	                        document.getElementById(idTargetError).className = 
+	                            document.getElementById(idTargetError).className.replace(/(?:^|\s)hidden(?!\S)/g , '');
+	                    document.getElementById(idTargetError).innerHTML = 'Error: Invalid date (Valid date format '+date+')';
+	                    document.getElementById('titleError').innerHTML = '';              
+	                    return false;
+	                }else{
+	                    if(!document.getElementById(idTargetError).className.match(/(?:^|\s)hidden(?!\S)/))                
+	                        document.getElementById(idTargetError).className += ' hidden';    
+	                    return true;
+	                }
+	            } else{
+	            	document.getElementById('titleError').innerHTML = '';
+	            	document.getElementById(idTargetError).innerHTML = '';
+	            	return true;
+	            }
+	            	    
+            }
+            
+            //Perform validation if Source Field Type is Datetime
+            if(strSrcType == 'Datetime'){
+                if(valTargetField != '') {
+	                var blnIsValidDate = isValidDateTime(valTargetField);
+	                if(!blnIsValidDate){
+	                    var d = new Date();
+	                    var date = (d.getMonth()+1)+'/'+d.getDate()+'/'+d.getFullYear(); 
+	                    var hours = d.getHours();
+	                    var minutes = d.getMinutes();
+	                    if(minutes < 10)
+	                        minutes = '0'+ minutes;
+	                    var AmPm = 'PM';
+	                    if((hours-12)<=0)
+	                        AmPm = 'AM';
+	                    hours = hours % 12; 
+	                    hours = hours ? hours : 12;
+	                    var time = ' '+hours+':'+minutes+' '+AmPm;
+	                    if(document.getElementById(idTargetError).className.match(/(?:^|\s)hidden(?!\S)/))                
+	                        document.getElementById(idTargetError).className = 
+	                            document.getElementById(idTargetError).className.replace(/(?:^|\s)hidden(?!\S)/g , '');
+	                    document.getElementById(idTargetError).innerHTML = 'Error: Invalid date (Valid date format '+date+' or '+date+time+')';             
+	                    document.getElementById('titleError').innerHTML = '';
+	                    return false;
+	                }else{
+	                    if(!document.getElementById(idTargetError).className.match(/(?:^|\s)hidden(?!\S)/))                
+	                        document.getElementById(idTargetError).className += ' hidden';   
+	                    return true;
+	                }
+	             } else{
+	                document.getElementById('titleError').innerHTML = '';
+	                document.getElementById(idTargetError).innerHTML = '';
+	             	return true;
+	             }
+	             	   
+            }
+        }
+        var idCustomSrcField = 'customSrcField' + pFilterNumber;
+        var strCustomField = document.getElementById(idCustomSrcField).value;
+        var strApi = '';
+        var strObjectApi = '';
+        var strFieldAPI = '{!strFieldApi}';
+        var strSourceObjectAPI = '{!strSourceObjApi}';
+        var strReferencedObjectAPI = '{!strReferencedObject}';
+        if(strCustomField != null && strCustomField != ''){
+            var intStartIndex = strCustomField.indexOf('API#S');  
+            var intEndIndex = strCustomField.indexOf('API#E');
+            strApi = strCustomField.substring((intStartIndex + 5), intEndIndex);
+            intStartIndex = strCustomField.indexOf('OBJ1#S');
+            intEndIndex = strCustomField.indexOf('OBJ1#E');
+            strObjectApi = strCustomField.substring((intStartIndex + 6), intEndIndex);
+        } 
+        if((strApi.toLowerCase() == strFieldAPI.toLowerCase()) && (strObjectApi.toLowerCase() == strSourceObjectAPI.toLowerCase())){
+		            if(document.getElementById('titleError').className.match(/(?:^|\s)hidden(?!\S)/))                
+			                        document.getElementById('titleError').className = 
+			                            document.getElementById('titleError').className.replace(/(?:^|\s)hidden(?!\S)/g , '');
+			                    document.getElementById('titleError').innerHTML = 'Error: A dependent lookup cannot directly or indirectly refer to itself. $Source.'+strReferencedObjectAPI+'-> $Source.'+strReferencedObjectAPI;
+		        	//document.getElementById('targetError2').innerHTML = '';
+		        	removeTargetErrors();
+		        	return false;
+		        }else{
+		            document.getElementById('titleError').innerHTML = '';
+        }
+        return true;
+    }
+    
+    //removing all of the error messages if title error is occured
+    function removeTargetErrors() {
+    	for(var i = 1;i <= intFilterIndex;i++) {
+    		document.getElementById('targetError'+i).innerHTML = '';
+    	}
+    }
+    
+    //This method validates if the operator has been selected or not for the specified filter index 
+    //returns true if a valida operator has been selected else returns false
+    function validateOperatorExistance(pFilterNumber){
+    
+    	var idOperator = 'operator' + pFilterNumber;
+    	var strOperator = document.getElementById(idOperator).value;
+    	if(strOperator == 'None')
+    		return false;
+    	return true;
+    }
+    
+    //This method validates the field compatibility between the selected source field and the target field
+    //Returns true if the fields are compatible else returns false 
+    function validateFieldCompatibility(pFilterNumber){
+    	if(document.getElementById('fieldFilter'+pFilterNumber).value=='Field'){
+	    	var idCustomSrcField = 'customSrcField' + pFilterNumber;
+	    	var idCustomTrgtField = 'customTrgtField' + pFilterNumber;
+	    	
+	    	var strCustomSrc = document.getElementById(idCustomSrcField).value;
+	    	var strCustomTrgt = document.getElementById(idCustomTrgtField).value;
+	    	
+	        var intSrcTrgtStartIndex = strCustomSrc.indexOf('TARGET#S');  
+	        var intSrcTrgtEndIndex = strCustomSrc.indexOf('TARGET#E');
+	        var intTrgtFldStartIndex = strCustomTrgt.indexOf('FTYPE#S');
+	        var intTrgtFldEndIndex = strCustomTrgt.indexOf('FTYPE#E');
+	        var intSrcFldStartIndex = strCustomSrc.indexOf('FTYPE#S');
+	        var intSrcFldEndIndex = strCustomSrc.indexOf('FTYPE#E');
+	        
+	        //strSrcTraget contains the comma separated field types that are compatible with selected source field
+	        var strSrcTarget = strCustomSrc.substring((intSrcTrgtStartIndex + 8), intSrcTrgtEndIndex);
+	        //strSrcField contains the type of Source Field selected 
+	        var strSrcField = strCustomSrc.substring((intSrcFldStartIndex + 7), intSrcFldEndIndex);
+	        //strTrgtField contains the type of Target Field selected 
+	        var strTrgtField = strCustomTrgt.substring((intTrgtFldStartIndex + 7), intTrgtFldEndIndex);
+	        
+	        var lstCompatibleFields = strSrcTarget.split(',');
+	        
+	        var blnIsCompatible = false;
+	        
+	        for(var index = 0; index < lstCompatibleFields.length; index++){
+	        	if(lstCompatibleFields[index] == strTrgtField){
+	        		blnIsCompatible = true;
+	        		break;
+	        	}
+	        	else
+	        		blnIsCompatible = false;
+	        }
+	       	if(blnIsCompatible)
+	       		return true;
+	       	else{
+	       		//return false, and at the same time display the error message to the coresponding target field
+	            var idTargetError = 'targetError' + pFilterNumber;
+	      			if(document.getElementById(idTargetError).className.match(/(?:^|\s)hidden(?!\S)/))                
+		               	document.getElementById(idTargetError).className = 
+		                   	document.getElementById(idTargetError).className.replace(/(?:^|\s)hidden(?!\S)/g , '');
+	               	document.getElementById(idTargetError).innerHTML = 'Error: Incorrect type. ' + strTrgtField + ' not compatible with ' + strSrcField;        		
+	       		    document.getElementById('titleError').innerHTML = '';
+	       		return false;        	
+	       	}    	
+    	}
+        return true;
+    }
+    
+    function preSave() {
+        window.setTimeout(preSaveValidations,200);
+        //preSaveValidations();
+    }
+    
+    //This method performs all the necessary client side validations that are required prior to saving
+    //the filter records to the database
+    function preSaveValidations(){
+        //alert('in presave validations');
+    	//Perform the validations for only those filter criterias which has been provided in the filter logic
+    	if(!blnIsLogicShown){
+    		document.getElementById('txtFilterLogic').value = populateFilterLogic();
+    	}
+    	
+    	filterNumbers = fetchFilterNumbers();
+    	filterNumbers = removeDuplicates(filterNumbers);
+    	
+    	var filterValidation1 = false;
+    	var filterValidation2 = false;
+    	var filterValidation3 = false;
+    	var fieldCompValidation = false;
+    	var blnValidationPassed = true;
+    	//alert(filterNumbers);
+    	//alert(filterNumbers.length);
+    	for(var index = 0; index < filterNumbers.length; index++){
+
+		var idTargetError = 'targetError' + filterNumbers[index];
+    		if(isSourceNotNull(filterNumbers[index])){
+    			filterValidation1 = validateSourceField(filterNumbers[index]);
+    			filterValidation2 = validateTargetField(filterNumbers[index]);
+    			//alert(filterValidation2);
+    			filterValidation3 = validateOperatorExistance(filterNumbers[index]);
+    			
+    			
+    			var idTargetField = 'targetField' + filterNumbers[index];
+	        	
+		        if((document.getElementById(idTargetField).value == '') && 
+		           (document.getElementById('fieldFilter'+filterNumbers[index]).value == 'Field')){		        	
+		            if(document.getElementById(idTargetError).className.match(/(?:^|\s)hidden(?!\S)/))                
+	                document.getElementById(idTargetError).className = 
+	                    	document.getElementById(idTargetError).className.replace(/(?:^|\s)hidden(?!\S)/g , '');
+	                document.getElementById(idTargetError).innerHTML = 'Error: Please select a field';
+		        	filterValidation2 = false;
+    		    }
+    			else
+    			fieldCompValidation = validateFieldCompatibility(filterNumbers[index]);
+    			
+    			//Display Error message for filter criteria
+    			if((!filterValidation1 || !filterValidation2 || !filterValidation3)){
+    				if(filterValidation2){
+    					if(document.getElementById('filterLogicError').className.match(/(?:^|\s)hidden(?!\S)/))                
+	                	document.getElementById('filterLogicError').className = 
+	                    	document.getElementById('filterLogicError').className.replace(/(?:^|\s)hidden(?!\S)/g , '');
+	                   document.getElementById('filterLogicError').innerHTML = 'Error: The filter logic references an undefined filter: ' + filterNumbers[index];
+    				}else{
+    					document.getElementById('filterLogicError').innerHTML = ''
+    				}
+    			}
+    			if(!filterValidation1 || !filterValidation2 || !filterValidation3 || !fieldCompValidation){
+    				blnValidationPassed = false;
+    				break;
+    			}
+    			if(filterValidation1 && filterValidation2 && filterValidation3 && fieldCompValidation){
+    				if(!document.getElementById('filterLogicError').className.match(/(?:^|\s)hidden(?!\S)/))                
+	                	document.getElementById('filterLogicError').className += ' hidden';
+    			}
+    		}
+    		else{
+    			
+       			if(document.getElementById('filterLogicError').className.match(/(?:^|\s)hidden(?!\S)/))                
+                	document.getElementById('filterLogicError').className = 
+                    	document.getElementById('filterLogicError').className.replace(/(?:^|\s)hidden(?!\S)/g , '');
+                document.getElementById('filterLogicError').innerHTML = 'Error: The filter logic references an undefined filter: ' + filterNumbers[index];
+                blnValidationPassed = false;
+                break;
+    		}
+    	}
+    	if(blnValidationPassed){
+    		
+    		//Perform the validation that if the field filter is defined but has not been provided in the filter logic
+    		//Here it is assumed that only those field filters would be taken into the consideration which passes all the validations 
+    		//that have already been performed
+			
+			if(checkFilterExistance()){
+	    		//All the filters have passed the validation and is good to save to the server
+	    		document.getElementById('filterLogicError').innerHTML = ''
+	    		strJSONToSave = constructJsonToSave();
+	    		strFilterLogic = document.getElementById('txtFilterLogic').value;
+	    		strFinalFilter = constructOrderedFilterLogic(strFilterLogic);
+	    		//alert('validated');
+	    		validateAtServer(strJSONToSave, strFinalFilter);			
+			}
+			else{
+       			if(document.getElementById('filterLogicError').className.match(/(?:^|\s)hidden(?!\S)/))
+                	document.getElementById('filterLogicError').className = 
+                    	document.getElementById('filterLogicError').className.replace(/(?:^|\s)hidden(?!\S)/g , '');
+                document.getElementById('filterLogicError').innerHTML = 'Error: Some filter conditions are defined but not referenced in your filter logic.';
+			}
+    	}
+    }
+    
+    //This function normalized the generated filter logic based on the occurrance/sequence of the filter criteria
+    function constructOrderedFilterLogic(pStrFilterLogic){
+    	
+    	var sortedFilterNumbers = new Array();
+    	var sortedFinalNumbers = new Array();
+    	var logicContent = new Array();
+    	var strFinalLogic = '';
+    	
+    	sortedFilterNumbers = filterNumbers;
+    	sortedFilterNumbers.sort(function(a,b){return a-b});
+       	
+       	logicContent = pStrFilterLogic.split(' ');
+       	
+       	sortedFinalNumbers = removeDuplicates(sortedFilterNumbers);
+       	
+       	for(var i = 0; i < logicContent.length; i++){
+       		
+       		var tmpNumber = logicContent[i].match(/\d+\.?\d*/g);
+       		var index;
+       		
+       		if(tmpNumber != null){
+       		
+       			index = sortedFinalNumbers.indexOf(tmpNumber[0]) + 1;
+       			logicContent[i] = logicContent[i].replace(tmpNumber, index);
+       		}
+       		strFinalLogic += logicContent[i];
+       		strFinalLogic += ' ';
+       	}
+       	
+    	return strFinalLogic;
+    }
+    
+    //This function removes the duplicate elements from the given array and retruns the resultant array
+    function removeDuplicates(pArray){
+    	
+    	var resultant = new Array();
+
+		var temp = {};
+		if(pArray != null) {
+			for (var i = 0; i < pArray.length; i++)
+				temp[pArray[i]] = true;
+			var resultant = [];
+			for(var k in temp)
+				resultant.push(k);
+		}
+		return resultant;
+    }
+    
+    //Function that checks the presence of any defined valid filter criteria in the filter logic
+    //Returns true if any valid filter definition exists but is not defined in the filter criteria
+    function checkFilterExistance(){
+    
+    	var isPresent;
+    	//alert(intFilterIndex);
+    	for(var i = 0; i < intFilterIndex; i++){
+    	    //alert('Main counter'+i);
+			isPresent = false;
+			
+			//Check for only those filters that passes all the validations
+			if((isSourceNotNull(i + 1)) && 
+			   (validateSourceField(i + 1)) && 
+			   (validateTargetField(i + 1)) && 
+			   (validateOperatorExistance(i + 1)) && 
+			   (validateFieldCompatibility(i + 1))){
+			   	//alert('in If');
+			    for(var j = 0; j < filterNumbers.length; j++){
+					//alert((i + 1));
+					//alert(filterNumbers[j]);
+					if((i + 1) == (filterNumbers[j])){
+						isPresent = true;
+						break; 
+					}
+			    }
+				if(!isPresent)
+					return false;		    
+			}else{
+			   if( !(validateTargetField(i + 1)) || 
+			      !(validateFieldCompatibility(i + 1))) {
+			   		for(var j = 0; j < filterNumbers.length; j++){
+					//alert((i + 1));
+					//alert(filterNumbers[j]);
+					if((i + 1) == (filterNumbers[j])){
+						isPresent = true;
+						break; 
+					}
+			      }
+			      if(!isPresent)
+					return false;
+			   }	
+			}
+    	}
+    	return true;
+    } 
+    
+    //This method retrieves the filter numbers that have been referred into the field filter logic
+    function fetchFilterNumbers(){
+    
+    	var strFilterLogic = document.getElementById('txtFilterLogic').value;
+		filterNumbers = strFilterLogic.match(/\d+\.?\d*/g);
+		return filterNumbers;
+    }
+    
+	//This method constructs the JSON object for the valiated filters added in the filter logic
+	function constructJsonToSave(){
+		
+		var strJSONToSave = '';
+			
+		strJSONToSave = '[';
+			
+		for(var index = 1; index <= filterNumbers.length; index++){
+
+			//Start populating the element
+			strJSONToSave += '{';
+			
+			//Assign the value for Filter Number
+			strJSONToSave += '\"intFilterOrder\"';
+			strJSONToSave += ':';
+			strJSONToSave += '\"' + index + '\"';
+			
+			strJSONToSave += ',';
+			
+			//Assign the value for strSourceFieldLabel
+			var strSrcLbl = document.getElementById('customSrcField' + filterNumbers[index - 1]).value;
+			if(strSrcLbl != null){
+				var intStartIndex = strSrcLbl.indexOf('LBL#S');  
+				var intEndIndex = strSrcLbl.indexOf('LBL#E');
+				var strLbl = strSrcLbl.substring((intStartIndex + 5), intEndIndex);
+				
+				strJSONToSave += '\"strSourceFieldLabel\"';
+				strJSONToSave += ':';
+				strJSONToSave += '\"' + strLbl + '\"';				
+			}
+			
+			strJSONToSave += ',';
+			
+			//Assign the value for strSourceFieldApi
+			var strSrcApi = document.getElementById('customSrcField' + filterNumbers[index - 1]).value;
+			if(strSrcApi != null){
+				var intStartIndex = strSrcLbl.indexOf('API#S');  
+				var intEndIndex = strSrcLbl.indexOf('API#E');
+				var strApi = strSrcApi.substring((intStartIndex + 5), intEndIndex);
+				
+				strJSONToSave += '\"strSourceFieldApi\"';
+				strJSONToSave += ':';
+				strJSONToSave += '\"' + strApi + '\"';				
+			}			
+			
+			strJSONToSave += ',';
+			
+			//Assign the value for strOperator
+			var strOperator = document.getElementById('operator' + filterNumbers[index - 1]).value;
+			strJSONToSave += '\"strOperator\"';
+			strJSONToSave += ':';
+			strJSONToSave += '\"' + strOperator + '\"';
+			
+			strJSONToSave += ',';
+			
+			//Assign the value for blnTargetIsField
+			var isField = document.getElementById('fieldFilter' + filterNumbers[index - 1]).value;
+			var blnIsField;
+			
+			if(isField == 'Value')
+				blnIsField = 'false';
+			if(isField == 'Field')
+				blnIsField = 'true';
+				
+			strJSONToSave += '\"strTargetIsField\"';
+			strJSONToSave += ':';
+			strJSONToSave += '\"' + blnIsField + '\"';			
+			
+			strJSONToSave += ',';
+			
+			//Assign the value for strTargetFieldLabel
+			
+			strJSONToSave += '\"strTargetFieldLabel\"';
+			strJSONToSave += ':';
+
+			//Populate the custom target field value if the field has been selected
+			if(blnIsField == 'true'){
+				var strTrgtLabel;
+				strTrgtLabel = document.getElementById('customTrgtField' + filterNumbers[index - 1]).value;
+				var intStartIndex = strTrgtLabel.indexOf('LBL#S');  
+				var intEndIndex = strTrgtLabel.indexOf('LBL#E');
+				var strTrgtLbl = strTrgtLabel.substring((intStartIndex + 5), intEndIndex);
+				
+				strJSONToSave += '\"' + strTrgtLbl + '\"';				
+			}
+			else{
+				strJSONToSave += '\"\"';
+			}
+			
+			strJSONToSave += ',';
+			
+			//Assign the value for strTargetFieldApi
+			
+			strJSONToSave += '\"strTargetFieldApi\"';
+			strJSONToSave += ':';
+			
+			if(blnIsField == 'true'){
+				var strTrgtApi = document.getElementById('customTrgtField' + filterNumbers[index - 1]).value;
+				var intStartIndex = strTrgtLabel.indexOf('API#S');  
+				var intEndIndex = strTrgtLabel.indexOf('API#E');
+				var strTrgtApi = strTrgtLabel.substring((intStartIndex + 5), intEndIndex);
+				
+				strJSONToSave += '\"' + strTrgtApi + '\"';
+			}
+			else{
+				strJSONToSave += '\"\"';
+			}
+			
+			strJSONToSave += ',';
+			
+			//Assign the value for strSourceFieldType
+			
+			strJSONToSave += '\"strSourceFieldType\"';
+			strJSONToSave += ':';
+			
+			var strCustSrcFld = document.getElementById('customSrcField' + filterNumbers[index - 1]).value;
+			var intStartIndex = strCustSrcFld.indexOf('FTYPE#S');  
+			var intEndIndex = strCustSrcFld.indexOf('FTYPE#E');
+			var strSrcFld = strCustSrcFld.substring((intStartIndex + 7), intEndIndex);
+			
+			strJSONToSave += '\"' + strSrcFld + '\"';
+			
+			strJSONToSave += ',';
+			
+			//Assign the value for strTargetValues
+
+			strJSONToSave += '\"strTargetValues\"';
+			strJSONToSave += ':';			
+
+			if(blnIsField == 'false'){
+				var strTrgtValue = document.getElementById('targetField' + filterNumbers[index - 1]).value;
+				strTrgtValue = replaceCharacters(strTrgtValue);
+				//alert(strTrgtValue);
+				strJSONToSave += '\"' + strTrgtValue + '\"';
+			}
+			else{
+				strJSONToSave += '\"\"';
+			}
+			
+			strJSONToSave += ',';
+			
+			//Assign the value for strSrcSFType
+			
+			var strSrcApi = document.getElementById('customSrcField' + filterNumbers[index - 1]).value;
+			if(strSrcApi != null){
+				var intStartIndex = strSrcLbl.indexOf('FTYPE#S');  
+				var intEndIndex = strSrcLbl.indexOf('FTYPE#E');
+				var strSrcSFType = strSrcApi.substring((intStartIndex + 7), intEndIndex);
+				
+				strJSONToSave += '\"strSrcSFType\"';
+				strJSONToSave += ':';
+				strJSONToSave += '\"' + strSrcSFType + '\"';				
+			}
+			
+			strJSONToSave += ',';
+			
+			//Assign the value for strSrcSoapType
+			
+			var strSrcApi = document.getElementById('customSrcField' + filterNumbers[index - 1]).value;
+			if(strSrcApi != null){
+				var intStartIndex = strSrcLbl.indexOf('SOAP#S');  
+				var intEndIndex = strSrcLbl.indexOf('SOAP#E');
+				var strSrcSoapType = strSrcApi.substring((intStartIndex + 6), intEndIndex);
+				
+				strJSONToSave += '\"strSrcSoapType\"';
+				strJSONToSave += ':';
+				strJSONToSave += '\"' + strSrcSoapType + '\"';				
+			}			
+			
+			strJSONToSave += ',';
+			
+			//Assign the value for strSrcObjFirst
+			
+			var strSrcApi = document.getElementById('customSrcField' + filterNumbers[index - 1]).value;
+			if(strSrcApi != null){
+				var intStartIndex = strSrcLbl.indexOf('OBJ1#S');  
+				var intEndIndex = strSrcLbl.indexOf('OBJ1#E');
+				var strSrcObjFirst = strSrcApi.substring((intStartIndex + 6), intEndIndex);
+				
+				strJSONToSave += '\"strSrcObjFirst\"';
+				strJSONToSave += ':';
+				strJSONToSave += '\"' + strSrcObjFirst + '\"';				
+			}			
+			
+			strJSONToSave += ',';
+			
+			//Assign the value for strSrcFieldFirst
+			
+			var strSrcApi = document.getElementById('customSrcField' + filterNumbers[index - 1]).value;
+			if(strSrcApi != null){
+				var intStartIndex = strSrcLbl.indexOf('FLD1#S');  
+				var intEndIndex = strSrcLbl.indexOf('FLD1#E');
+				var strSrcFieldFirst = strSrcApi.substring((intStartIndex + 6), intEndIndex);
+				
+				strJSONToSave += '\"strSrcFieldFirst\"';
+				strJSONToSave += ':';
+				strJSONToSave += '\"' + strSrcFieldFirst + '\"';				
+			}			
+			
+			strJSONToSave += ',';
+			
+			//Assign the value for strSrcObjSecond
+			
+			var strSrcApi = document.getElementById('customSrcField' + filterNumbers[index - 1]).value;
+			if(strSrcApi != null){
+				var intStartIndex = strSrcLbl.indexOf('OBJ2#S');  
+				var intEndIndex = strSrcLbl.indexOf('OBJ2#E');
+				var strSrcObjSecond = strSrcApi.substring((intStartIndex + 6), intEndIndex);
+				
+				strJSONToSave += '\"strSrcObjSecond\"';
+				strJSONToSave += ':';
+				strJSONToSave += '\"' + strSrcObjSecond + '\"';				
+			}			
+			
+			strJSONToSave += ',';
+			
+			//Assign the value for strSrcFieldSecond
+			
+			var strSrcApi = document.getElementById('customSrcField' + filterNumbers[index - 1]).value;
+			if(strSrcApi != null){
+				var intStartIndex = strSrcLbl.indexOf('FLD2#S');  
+				var intEndIndex = strSrcLbl.indexOf('FLD2#E');
+				var strSrcFieldSecond = strSrcApi.substring((intStartIndex + 6), intEndIndex);
+				
+				strJSONToSave += '\"strSrcFieldSecond\"';
+				strJSONToSave += ':';
+				strJSONToSave += '\"' + strSrcFieldSecond + '\"';				
+			}			
+			
+			strJSONToSave += ',';
+			
+			//Assign the value for strTrgtSFType
+			
+			strJSONToSave += '\"strTrgtSFType\"';
+			strJSONToSave += ':';
+
+			//Populate the custom target field value if the field has been selected
+			if(blnIsField == 'true'){
+				var strTrgtLabel;
+				strTrgtLabel = document.getElementById('customTrgtField' + filterNumbers[index - 1]).value;
+				var intStartIndex = strTrgtLabel.indexOf('FTYPE#S');  
+				var intEndIndex = strTrgtLabel.indexOf('FTYPE#E');
+				var strTrgtSFType = strTrgtLabel.substring((intStartIndex + 7), intEndIndex);
+				
+				strJSONToSave += '\"' + strTrgtSFType + '\"';				
+			}
+			else{
+				strJSONToSave += '\"\"';
+			}			
+			
+			strJSONToSave += ',';
+			
+			//Assign the value for strTrgtSoapType
+			
+			strJSONToSave += '\"strTrgtSoapType\"';
+			strJSONToSave += ':';
+
+			//Populate the custom target field value if the field has been selected
+			if(blnIsField == 'true'){
+				var strTrgtLabel;
+				strTrgtLabel = document.getElementById('customTrgtField' + filterNumbers[index - 1]).value;
+				var intStartIndex = strTrgtLabel.indexOf('SOAP#S');  
+				var intEndIndex = strTrgtLabel.indexOf('SOAP#E');
+				var strTrgtSoapType = strTrgtLabel.substring((intStartIndex + 6), intEndIndex);
+				
+				strJSONToSave += '\"' + strTrgtSoapType + '\"';				
+			}
+			else{
+				strJSONToSave += '\"\"';
+			}			
+			
+			strJSONToSave += ',';
+			
+			//Assign the value for strTrgtObjFirst
+			
+			strJSONToSave += '\"strTrgtObjFirst\"';
+			strJSONToSave += ':';
+
+			//Populate the custom target field value if the field has been selected
+			if(blnIsField == 'true'){
+				var strTrgtLabel;
+				strTrgtLabel = document.getElementById('customTrgtField' + filterNumbers[index - 1]).value;
+				var intStartIndex = strTrgtLabel.indexOf('OBJ1#S');  
+				var intEndIndex = strTrgtLabel.indexOf('OBJ1#E');
+				var strTrgtObjFirst = strTrgtLabel.substring((intStartIndex + 6), intEndIndex);
+				
+				strJSONToSave += '\"' + strTrgtObjFirst + '\"';				
+			}
+			else{
+				strJSONToSave += '\"\"';
+			}			
+			
+			strJSONToSave += ',';
+			
+			//Assign the value for strTrgtFieldFirst
+			
+			strJSONToSave += '\"strTrgtFieldFirst\"';
+			strJSONToSave += ':';
+
+			//Populate the custom target field value if the field has been selected
+			if(blnIsField == 'true'){
+				var strTrgtLabel;
+				strTrgtLabel = document.getElementById('customTrgtField' + filterNumbers[index - 1]).value;
+				var intStartIndex = strTrgtLabel.indexOf('FLD1#S');  
+				var intEndIndex = strTrgtLabel.indexOf('FLD1#E');
+				var strTrgtFieldFirst = strTrgtLabel.substring((intStartIndex + 6), intEndIndex);
+				
+				strJSONToSave += '\"' + strTrgtFieldFirst + '\"';				
+			}
+			else{
+				strJSONToSave += '\"\"';
+			}			
+			
+			strJSONToSave += ',';
+			
+			//Assign the value for strTrgtObjSecond
+			
+			strJSONToSave += '\"strTrgtObjSecond\"';
+			strJSONToSave += ':';
+
+			//Populate the custom target field value if the field has been selected
+			if(blnIsField == 'true'){
+				var strTrgtLabel;
+				strTrgtLabel = document.getElementById('customTrgtField' + filterNumbers[index - 1]).value;
+				var intStartIndex = strTrgtLabel.indexOf('OBJ2#S');  
+				var intEndIndex = strTrgtLabel.indexOf('OBJ2#E');
+				var strTrgtObjSecond = strTrgtLabel.substring((intStartIndex + 6), intEndIndex);
+				
+				strJSONToSave += '\"' + strTrgtObjSecond + '\"';				
+			}
+			else{
+				strJSONToSave += '\"\"';
+			}			
+			
+			strJSONToSave += ',';
+			
+			//Assign the value for strTrgtFieldSecond
+			
+			strJSONToSave += '\"strTrgtFieldSecond\"';
+			strJSONToSave += ':';
+
+			//Populate the custom target field value if the field has been selected
+			if(blnIsField == 'true'){
+				var strTrgtLabel;
+				strTrgtLabel = document.getElementById('customTrgtField' + filterNumbers[index - 1]).value;
+				var intStartIndex = strTrgtLabel.indexOf('FLD2#S');  
+				var intEndIndex = strTrgtLabel.indexOf('FLD2#E');
+				var strTrgtFieldSecond = strTrgtLabel.substring((intStartIndex + 6), intEndIndex);
+				
+				strJSONToSave += '\"' + strTrgtFieldSecond + '\"';				
+			}
+			else{
+				strJSONToSave += '\"\"';
+			}			
+			
+			strJSONToSave += ',';
+			
+			//Assign the value for strSrcRelRefObj1
+			var strSrcApi = document.getElementById('customSrcField' + filterNumbers[index - 1]).value;
+			if(strSrcApi != null){
+				var intStartIndex = strSrcLbl.indexOf('REFOBJ1#S');  
+				var intEndIndex = strSrcLbl.indexOf('REFOBJ1#E');
+				var strSrcRelRefObj1 = strSrcApi.substring((intStartIndex + 9), intEndIndex);
+				
+				strJSONToSave += '\"strSrcRelRefObj1\"';
+				strJSONToSave += ':';
+				strJSONToSave += '\"' + strSrcRelRefObj1 + '\"';				
+			}			
+			
+			strJSONToSave += ',';
+			 
+			//Assign the value for strSrcRelRefObj2
+			
+			var strSrcApi = document.getElementById('customSrcField' + filterNumbers[index - 1]).value;
+			if(strSrcApi != null){
+				var intStartIndex = strSrcLbl.indexOf('REFOBJ2#S');  
+				var intEndIndex = strSrcLbl.indexOf('REFOBJ2#E');
+				var strSrcRelRefObj2 = strSrcApi.substring((intStartIndex + 9), intEndIndex);
+				
+				strJSONToSave += '\"strSrcRelRefObj2\"';
+				strJSONToSave += ':';
+				strJSONToSave += '\"' + strSrcRelRefObj2 + '\"';				
+			}			
+			
+			strJSONToSave += ',';
+			
+			//Assign the value for strTrgtRelRefObj1
+
+			strJSONToSave += '\"strTrgtRelRefObj1\"';
+			strJSONToSave += ':';
+
+			//Populate the custom target field value if the field has been selected
+			if(blnIsField == 'true'){
+				var strTrgtLabel;
+				strTrgtLabel = document.getElementById('customTrgtField' + filterNumbers[index - 1]).value;
+				var intStartIndex = strTrgtLabel.indexOf('REFOBJ1#S');  
+				var intEndIndex = strTrgtLabel.indexOf('REFOBJ1#E');
+				var strTrgtRelRefObj1 = strTrgtLabel.substring((intStartIndex + 9), intEndIndex);
+				
+				strJSONToSave += '\"' + strTrgtRelRefObj1 + '\"';				
+			}
+			else{
+				strJSONToSave += '\"\"';
+			}
+			
+			strJSONToSave += ',';
+			
+			//Assign the value for strTrgtRelRefObj2
+			
+			strJSONToSave += '\"strTrgtRelRefObj2\"';
+			strJSONToSave += ':';
+
+			//Populate the custom target field value if the field has been selected
+			if(blnIsField == 'true'){
+				var strTrgtLabel;
+				strTrgtLabel = document.getElementById('customTrgtField' + filterNumbers[index - 1]).value;
+				var intStartIndex = strTrgtLabel.indexOf('REFOBJ2#S');  
+				var intEndIndex = strTrgtLabel.indexOf('REFOBJ2#E');
+				var strTrgtRelRefObj2 = strTrgtLabel.substring((intStartIndex + 9), intEndIndex);
+				
+				strJSONToSave += '\"' + strTrgtRelRefObj2 + '\"';				
+			}
+			else{
+				strJSONToSave += '\"\"';
+			}			
+			
+			strJSONToSave += '}';
+			if(index < filterNumbers.length)
+				strJSONToSave += ',';
+		}
+		
+		strJSONToSave += ']';
+		return strJSONToSave;
+	}    
+  
+    
+    //This mehtod creates the dynamic HTML required for generating Additional Field Filter Criterias
+    function createDynamicFilter(){
+    
+        intFilterIndex ++;
+        pDefaultFilter = '<tr>';
+        pDefaultFilter += '<td><label id="' + intFilterIndex + '" style="display:inline">';
+        if(!blnIsLogicShown && intFilterIndex > 1)
+        	pDefaultFilter += 'AND ';
+        if(blnIsLogicShown)
+        	pDefaultFilter += intFilterIndex + '. ';
+        pDefaultFilter += '</label></td>';
+        pDefaultFilter += '<td class="hidden"><input id="customSrcField' + intFilterIndex + '" type="text" value=""/></td>';
+        pDefaultFilter += '<td class="hidden"><input id="customTrgtField' + intFilterIndex + '" type="text" value=""/></td>';
+        pDefaultFilter += '<td><input id="sourceField' + intFilterIndex + '" type="text" class="fieldFilter" name="dynamic[]" value="" onblur="addDynamicFilter(\'source\',' + intFilterIndex + ')" placeholder="Begin typing to search for a field..." style="width: 223px;"/></td>';
+        pDefaultFilter += '<td style="width:30px"><img src="/s.gif" alt="Lookup (New Window)" id="sourceLookup'+intFilterIndex+'" onClick="popup('+intFilterIndex+',\'source\');" class="lookupIcon" onblur="this.className = \'lookupIcon\';" onfocus="this.className = \'lookupIconOn\';" onmouseout="this.className = \'lookupIcon\';this.className = \'lookupIcon\';" onmouseover="this.className = \'lookupIconOn\';this.className = \'lookupIconOn\';" title="Lookup (New Window)"  style="cursor: pointer;"></img></td>';
+        pDefaultFilter += '<td style="width: 125px;"><select title="Operator ' + intFilterIndex + '" id="operator' + intFilterIndex + '" style="width: 125px;"><option value="none">--None--</option></select></td>';
+        pDefaultFilter += '<td><select title="Value ' + intFilterIndex + '" id="fieldFilter' + intFilterIndex + '" onchange="fieldValueValidator(' + intFilterIndex + ')"><option value="Value">Value</option><option value="Field">Field</option></select></td>';
+        pDefaultFilter += '<td><input value="{!strSelectedValue}" id="targetField' + intFilterIndex + '" type="text" name="dynamic[]" value="" onblur="addDynamicFilter(\'target\',' + intFilterIndex + ')" style="width: 223px;"/></td>';
+        pDefaultFilter += '<td style="width:30px"><img id="targetFieldLookup' + intFilterIndex + '" onClick="popup('+intFilterIndex+',\'target\');" src="/s.gif" alt="Lookup (New Window)" class="lookupIcon invisible" onblur="this.className = \'lookupIcon\';" onfocus="this.className = \'lookupIconOn\';" onmouseout="this.className = \'lookupIcon\';this.className = \'lookupIcon\';" onmouseover="this.className = \'lookupIconOn\';this.className = \'lookupIconOn\';" title="Lookup (New Window)"  style="cursor: pointer;"></img></td>';
+        pDefaultFilter += '<td><a href="javascript:void(0);" id="'+ intFilterIndex +'" onclick="clearRow(this);">Clear</a></td>';
+        pDefaultFilter += '<td class="hidden"><input id="hiddenValue' + intFilterIndex + '" type="text" value=""/></td>';
+        pDefaultFilter += '</tr>';
+        
+        pDefaultFilter += '<tr>';
+        pDefaultFilter += '<td></td>';
+        pDefaultFilter += '<td><label class="errorMsg errorDiv hidden" id="sourceError' + intFilterIndex + '">Error: Field not found</label></td>';
+        pDefaultFilter += '<td></td>';
+        pDefaultFilter += '<td></td>';
+        pDefaultFilter += '<td></td>';
+        pDefaultFilter += '<td><label class="errorMsg errorDiv hidden" id="targetError' + intFilterIndex + '">Error</label></td>';
+        pDefaultFilter += '<td></td>';
+        pDefaultFilter += '</tr>';
+        
+        if(intFilterIndex == 15)
+        pDefaultFilter += '<tr><td colspan="5"><label>You have reached the maximum number of 15 criteria rows.<label></td></tr>';
+        
+         return pDefaultFilter;
+    }
+    
+    //This method is used to clear the Filter Criteria
+    function clearRow(rowId){
+    
+        var rowIndex = '';
+        
+       	if(typeof rowId.id == "undefined")
+        	rowIndex = rowId;
+        else
+           	rowIndex = rowId.id;
+        var sourceFieldToClearId = 'sourceField' + rowIndex;
+        var operatorToClearId = 'operator' + rowIndex;
+        var targetFieldToClearId = 'targetField' + rowIndex;
+        var fieldFilterToClearId = 'fieldFilter' + rowIndex;
+        var idCustomSrcField = 'customSrcField' + rowIndex;
+        var idCustomTrgtField = 'customTrgtField' + rowIndex;
+        var idSoruceError = 'sourceError' + rowIndex;
+        var idTargetError = 'targetError' + rowIndex;
+        var idTargetFieldLookup = 'targetFieldLookup' + rowIndex;
+        
+        document.getElementById(sourceFieldToClearId).value = '';
+        j$("#"+operatorToClearId).val('--None--');
+        document.getElementById(targetFieldToClearId).value = '';
+        document.getElementById(targetFieldToClearId).removeAttribute("placeholder");
+        document.getElementById(targetFieldToClearId).className = 
+                document.getElementById(targetFieldToClearId).className.replace(/(?:^|\s)fieldFilter(?!\S)/g , '');
+        document.getElementById(fieldFilterToClearId).value = 'Value';
+        
+        document.getElementById(idCustomSrcField).value = '';
+        document.getElementById(idCustomTrgtField).value = '';
+        
+        if(!document.getElementById(idSoruceError).className.match(/(?:^|\s)hidden(?!\S)/)){
+            document.getElementById(idSoruceError).className += ' hidden';
+        }
+        if(!document.getElementById(idTargetFieldLookup).className.match(/(?:^|\s)invisible(?!\S)/)){
+            document.getElementById(idTargetFieldLookup).className += ' invisible';
+        }
+        if(!document.getElementById(idTargetError).className.match(/(?:^|\s)hidden(?!\S)/)){
+            document.getElementById(idTargetError).className += ' hidden';
+        }
+        populateOperators(rowIndex,'');
+    }
+    
+    //This method clears all the existing filter criteria
+    function clearAll(){
+    	
+    	for(var i = 0; i < intFilterIndex; i++){
+    		clearRow(i + 1);
+    	}
+    	document.getElementById('txtFilterLogic').value = '';
+    }
+    
+    /* function getting called up when click on lookup icon on UI, this function describes all the 
+       dynamic generation of HTML, all the input events and approproate actions for those events */
+    function popup(pFilterIndex, pInput) {    
+       var fieldDataType = '';
+       var fieldPickListValues = '';
+       var customExp = document.getElementById('customSrcField'+pFilterIndex).value;
+       fieldDataType = getFieldDataType(customExp);
+       fieldPickListValues = getFieldPickListValues(customExp);
+       
+       var obj1Api = getObject1Api(customExp);
+       var obj2Api = getObject2Api(customExp);
+       var fieldApi = getFieldAPIName(customExp);
+       
+       var objectApi;
+       if(obj2Api != '')
+	       objectApi = obj2Api;
+	   else
+	       objectApi = obj1Api; 
+       
+       var fieldFilter = document.getElementById('fieldFilter'+pFilterIndex).value;
+       if((fieldDataType == 'Picklist' || fieldDataType == 'Boolean') && (fieldFilter == 'Value') && (pInput == 'target')){
+             //openLookupPopup(pFilterIndex, fieldDataType, fieldApi, objectApi, fieldPickListValues);           
+             openLookupPopup(pFilterIndex, fieldDataType, fieldApi, objectApi);
+       }else{
+                 var inputId = pInput+'Field'+pFilterIndex;
+               j$("#SelectList").empty();
+               j$("#infoMsg").empty();
+               j$("#FieldTreeDialogId_buttons").empty();
+                    j$("#dialog2").dialog({
+                        width : 800,
+                        height: 330,
+                        modal :true,
+                        dialogClass : 'normal'
+                    });
+                    document.getElementById('fieldSelection').setAttribute('class','fieldSelectorScrollableArea');
+                  document.getElementById('fieldSelection').setAttribute('height','193px');   
+                  var info = document.getElementById('infoMsg');
+                  var p = document.createElement('p');
+                  p.setAttribute("id", "FieldTreeDialogIdInfo");
+                  p.innerHTML = 'Select a field, then click Insert.  Labels followed by a "&gt;" indicate that there are more fields available.';
+                  info.appendChild(p);
+                  var trrr = document.getElementById('SelectList');
+                  var TD = document.createElement('td');
+                  TD.setAttribute("id", "first");
+                  TD.innerHTML = getInitialLabelsHtml(inputId);
+                  trrr.appendChild (TD);
+                  var text = document.getElementById(inputId).value;
+                  if(isLabelPresent(text)){
+                      var labelToShowInDiv = [];
+                      labelToShowInDiv = text.split(': ');
+                      j$("#firstSelect").val(labelToShowInDiv[0]);
+                      j$("#firstSelect").val(sourceObject);
+                  	  if(labelToShowInDiv.length == 2){
+                  	  	 var TD1 = document.createElement('td');
+		                 TD1.setAttribute("id", "second");
+		                 var firstLevel = labelToShowInDiv[0].replace(": "," >");
+		                 j$("#firstSelect").val(firstLevel);
+		                 var secondLevel = labelToShowInDiv[1];
+		                 TD1.innerHTML = getFields1Html(firstLevel);
+		                 var valueToSelectSecond = getSecondValueToSelect(text);
+		                 trrr.appendChild (TD1);
+		                 j$("#secondSelect").val(valueToSelectSecond);
+		                  var PrefixToAPI = '';
+                         var refObj1 = getReferenceObject1(j$("#secondSelect").val());
+                         var refObj2 = getReferenceObject2(j$("#secondSelect").val());
+                         var firstSeletedValue = j$("#firstSelect").val();
+                         if((refObj1 == '') && (firstSeletedValue == 'Current User'))
+                         	PrefixToAPI = '$User.';
+                         else if((refObj1 == '') && (firstSeletedValue == 'Current User Profile'))
+                         	PrefixToAPI = '$Profile.';
+                         else if((refObj1 == '') && (firstSeletedValue == 'Current User Role'))
+                         	PrefixToAPI = '$UserRole.';	
+                         else if((refObj1 != ''))
+                             PrefixToAPI = '';
+                         else 
+                             PrefixToAPI = '$Source.';
+		                 var strDataType = getFieldDataType((j$("#secondSelect").val()));
+                         var insertTD = document.createElement('td');
+                         insertTD.setAttribute("id", "insertBox");
+                         insertTD.setAttribute("class", "insertBox");
+                         var insertBoxHtml = '<span>You have selected:</span>';
+                         insertBoxHtml += '<span class="insertWrapperString">'+getFieldLabelForSecondSelection((j$("#secondSelect").val()))+'</span>';
+                         insertBoxHtml += '<span class="fieldPickerAttributeCategory">Type: '+strDataType+'</span>';
+                         insertBoxHtml += '<span class="fieldPickerAttributeCategory">API Name: '+PrefixToAPI+getFieldAPIName((j$("#secondSelect").val()))+'</span>';
+                         insertBoxHtml += '<span class="insertWrapperButton"><input type="button" id="insertField" value="Insert" class="btn" class="insertWrapperButton" /></span>';
+                         insertTD.innerHTML = insertBoxHtml;
+                         trrr.appendChild (insertTD);
+                         selectionChange(trrr,pInput,pFilterIndex,inputId);
+                         j$("#insertField").click(function() {
+                                        var valueToInsert = j$("#secondSelect").val();
+                                        var type = '';
+                                        if(pInput=='source'){
+                                            j$('#customSrcField'+pFilterIndex).val(valueToInsert);
+                                            populateOperators(pFilterIndex, getFieldOperators(valueToInsert));
+                                            sourceFieldLookup(pFilterIndex);
+                                            type='source';
+                                        }else{
+                                            j$('#customTrgtField'+pFilterIndex).val(valueToInsert);
+                                            sourceFieldLookup(pFilterIndex);
+                                            type='target';
+                                        }
+                                        fieldValidation(inputId, pFilterIndex);
+                                        
+                                        var inputField = '#'+inputId;
+                                        j$(inputField).val(getFieldLabel(valueToInsert));
+                                        addDynamicFilter(type, pFilterIndex);
+                                        j$("#dialog2").dialog( "close" );
+                                    });    
+		                 var close = document.getElementById('FieldTreeDialogId_buttons');
+		                 close.innerHTML = '<br/><input class="btn" type="button" value="Close" id="fieldSelectClose" onClick="closeDialog()">';        
+                  	  }
+                  	  if(labelToShowInDiv.length == 3){
+                  	  	 var firstLevel = labelToShowInDiv[0].replace(": "," >");
+                  	  	 j$("#firstSelect").val(firstLevel);
+		                 var secondLevel = labelToShowInDiv[1].replace(": "," >");
+		                 var thirdLevel = labelToShowInDiv[2];
+		                 var TD1 = document.createElement('td');
+		                 TD1.setAttribute("id", "second");
+		                 TD1.innerHTML = getFields1Html(firstLevel);
+		                 var valueToSelectSecond = 'NA#'+secondLevel+' >';
+		                 trrr.appendChild (TD1);
+		                 j$("#secondSelect").val(valueToSelectSecond);
+		                 var TD3 = document.createElement('td');
+                         TD3.setAttribute("id", "third");
+                         var parentField = j$("#secondSelect").val().split('#')[1];
+                         var fieldToSearch = (j$("#firstSelect").val())+': '+(parentField.replace(" >",": "));
+                         TD3.innerHTML = getFields2Html(fieldToSearch);
+                         trrr.appendChild (TD3);
+                         var thirdLevelToSelect = getSecondValueToSelect(text);
+                         j$("#thirdSelect").val(thirdLevelToSelect);
+		                 var strDataType = getFieldDataType((j$("#thirdSelect").val()));
+		                  var refObj2 = getReferenceObject2(j$("#thirdSelect").val());
+                         var prefixtoAPI = '$'+refObj2+'.';
+                         var insertTD = document.createElement('td');
+                         insertTD.setAttribute("id", "insertBox");
+                         insertTD.setAttribute("class", "insertBox");
+                         var insertBoxHtml = '<span>You have selected:</span>';
+                         insertBoxHtml += '<span class="insertWrapperString">'+getFieldLabelForSecondSelection((j$("#thirdSelect").val()))+'</span>';
+                         insertBoxHtml += '<span class="fieldPickerAttributeCategory">Type: '+strDataType+'</span>';
+                         insertBoxHtml += '<span class="fieldPickerAttributeCategory">API Name: '+prefixtoAPI+getFieldAPIName((j$("#thirdSelect").val()))+'</span>';
+                         insertBoxHtml += '<span class="insertWrapperButton"><input type="button" id="insertField" value="Insert" class="btn" class="insertWrapperButton" /></span>';
+                         insertTD.innerHTML = insertBoxHtml;
+                         trrr.appendChild (insertTD);
+                         selectionChange(trrr,pInput,pFilterIndex,inputId);
+                         j$("#insertField").click(function() {
+                                        var valueToInsert = j$("#thirdSelect").val();
+                                        var type = '';
+                                        if(pInput=='source'){
+                                            j$('#customSrcField'+pFilterIndex).val(valueToInsert);
+                                            populateOperators(pFilterIndex, getFieldOperators(valueToInsert));
+                                            //call populate custom fields 4s 
+                                            sourceFieldLookup(pFilterIndex);
+                                            type='source';
+                                        }else{
+                                            j$('#customTrgtField'+pFilterIndex).val(valueToInsert);
+                                            //call populate custom fields 4s
+                                            sourceFieldLookup(pFilterIndex);
+                                            type='target';
+                                        }
+                                        
+                                        // 12/2/13
+                                        fieldValidation(inputId, pFilterIndex);
+                                        
+                                        var inputField = '#'+inputId;
+                                        j$(inputField).val(getFieldLabel(valueToInsert));
+                                        addDynamicFilter(type, pFilterIndex);
+                                        j$("#dialog2").dialog( "close" );
+                                    });    
+		                 var close = document.getElementById('FieldTreeDialogId_buttons');
+		                 close.innerHTML = '<br/><input class="btn" type="button" value="Close" id="fieldSelectClose" onClick="closeDialog()">';        
+                  	  }
+                  
+                  }else{
+                         j$("#firstSelect").val(sourceObject);
+                  	     var TD1 = document.createElement('td');
+		                  TD1.setAttribute("id", "second");
+		                  TD1.innerHTML = getFields1Html(sourceObject);
+		                  trrr.appendChild (TD1);
+		                  selectionChange(trrr,pInput,pFilterIndex,inputId);
+		                  var close = document.getElementById('FieldTreeDialogId_buttons');
+		                  close.innerHTML = '<br/><input class="btn" type="button" value="Close" id="fieldSelectClose" onClick="closeDialog()">';        
+                  }
+                  j$("#firstSelect").change(function() {
+                        j$("#second").remove();
+                        j$("#insertBox").remove();
+                        j$("#third").remove();
+                        var TD1 = document.createElement('td');
+                        TD1.setAttribute("id", "second");
+                        TD1.innerHTML = getFields1Html(j$("#firstSelect").val());
+                        trrr.appendChild (TD1);
+                        j$("#secondSelect").change(function() {
+                            j$("#insertBox").remove();
+                            j$("#third").remove();
+                            if(((j$("#secondSelect").val()).split('#')[0]) != 'NA'){
+                                var strDataType = getFieldDataType((j$("#secondSelect").val()));
+                                var refObj1 = getReferenceObject1(j$("#secondSelect").val());
+                                var refObj2 = getReferenceObject2(j$("#secondSelect").val());
+                                var insertTD = document.createElement('td');
+                                var firstSeletedValue = j$("#firstSelect").val();
+                                var PrefixToAPI = '';
+                                if((refObj1 == '') && (firstSeletedValue == 'Current User'))
+                                	PrefixToAPI = '$User.';
+                                else if((refObj1 == '') && (firstSeletedValue == 'Current User Profile'))
+                                	PrefixToAPI = '$Profile.';
+                                else if((refObj1 == '') && (firstSeletedValue == 'Current User Role'))
+                                	PrefixToAPI = '$UserRole.';	
+                                else if((refObj1 != ''))
+                                    PrefixToAPI = '';
+                                else 
+                                    PrefixToAPI = '$Source.';     	
+                                insertTD.setAttribute("id", "insertBox");
+                                insertTD.setAttribute("class", "insertBox");
+                                var insertBoxHtml = '<span>You have selected:</span>';
+                                insertBoxHtml += '<span class="insertWrapperString">'+getFieldLabelForSecondSelection((j$("#secondSelect").val()))+'</span>';
+                                insertBoxHtml += '<span class="fieldPickerAttributeCategory">Type: '+strDataType+'</span>';
+                                insertBoxHtml += '<span class="fieldPickerAttributeCategory">API Name: '+PrefixToAPI+getFieldAPIName((j$("#secondSelect").val()))+'</span>';
+                                insertBoxHtml += '<span class="insertWrapperButton"><input type="button" id="insertField" value="Insert" class="btn" class="insertWrapperButton" /></span>';
+                                insertTD.innerHTML = insertBoxHtml;
+                                trrr.appendChild (insertTD);
+                                    j$("#insertField").click(function() {
+                                        var valueToInsert = j$("#secondSelect").val();
+                                        var type = '';
+                                        if(pInput=='source'){
+                                            j$('#customSrcField'+pFilterIndex).val(valueToInsert);
+                                            populateOperators(pFilterIndex, getFieldOperators(valueToInsert));
+                                            //call populate custom fields 4s 
+                                            sourceFieldLookup(pFilterIndex);
+                                            type='source';
+                                        }else{
+                                            j$('#customTrgtField'+pFilterIndex).val(valueToInsert);
+                                            //call populate custom fields 4s
+                                            sourceFieldLookup(pFilterIndex);
+                                            type='target';
+                                        }
+                                        
+                                        // 12/2/13
+                                        fieldValidation(inputId, pFilterIndex);
+                                        
+                                        var inputField = '#'+inputId;
+                                        j$(inputField).val(getFieldLabel(valueToInsert));
+                                        addDynamicFilter(type, pFilterIndex);
+                                        j$("#dialog2").dialog( "close" );
+                                    });      
+                            }else{
+                               var parentField = j$("#secondSelect").val().split('#')[1];
+                               var fieldToSearch = (j$("#firstSelect").val())+': '+(parentField.replace(" >",": "));
+                               j$("#third").remove();
+                               j$("#insertBox").remove();
+                               var TD3 = document.createElement('td');
+                               TD3.setAttribute("id", "third");
+                               TD3.innerHTML = getFields2Html(fieldToSearch);
+                               trrr.appendChild (TD3);
+                            }
+                            j$("#thirdSelect").change(function() {
+                                j$("#insertBox").remove();
+                                var strDataType3 = getFieldDataType((j$("#thirdSelect").val()));
+                                var insertTD3 = document.createElement('td');
+                                insertTD3.setAttribute("id", "insertBox");
+                                insertTD3.setAttribute("class", "insertBox");
+                                var refObj2 = getReferenceObject2(j$("#thirdSelect").val());
+                                var prefixtoAPI = '$'+refObj2+'.';
+                                var insertBoxHtml3 = '<span>You have selected:</span>';
+                                insertBoxHtml3 += '<span class="insertWrapperString">'+getFieldLabelForThirdSelection((j$("#thirdSelect").val()))+'</span>';
+                                insertBoxHtml3 += '<span class="fieldPickerAttributeCategory">Type: '+strDataType3+'</span>';
+                                insertBoxHtml3 += '<span class="fieldPickerAttributeCategory">API Name: '+prefixtoAPI+getFieldAPIName((j$("#thirdSelect").val()))+'</span>';
+                                insertBoxHtml3 += '<span class="insertWrapperButton"><input type="button" id="insertField" value="Insert" class="btn" class="insertWrapperButton" /></span>';
+                                insertTD3.innerHTML = insertBoxHtml3;
+                                trrr.appendChild (insertTD3);
+                                    j$("#insertField").click(function() {
+                                        var valueToInsert = j$("#thirdSelect").val();
+                                        var type2='';
+                                        if(pInput=='source'){
+                                            j$('#customSrcField'+pFilterIndex).val(valueToInsert);
+                                            populateOperators(pFilterIndex, getFieldOperators(valueToInsert));
+                                            //call populate custom fields
+                                            sourceFieldLookup(pFilterIndex);
+                                            type2='source';
+                                        }else{
+                                            j$('#customTrgtField'+pFilterIndex).val(valueToInsert);
+                                            //call populate custom fields
+                                            sourceFieldLookup(pFilterIndex);
+                                            type2='target';
+                                        }
+                                        var inputField = '#'+inputId;
+                                        j$(inputField).val(getFieldLabel(valueToInsert));
+                                        addDynamicFilter(type2, pFilterIndex);
+                                        j$("#dialog2").dialog( "close" );
+                                    });      
+                            }); 
+                        }); 
+                  });
+       }
+       //j$('.ui-button-text').remove();
+    }
+    
+    
+      function selectionChange(trrr,pInput,pFilterIndex,inputId){
+    	 j$("#secondSelect").change(function() {
+                            j$("#insertBox").remove();
+                            j$("#third").remove();
+                            if(((j$("#secondSelect").val()).split('#')[0]) != 'NA'){
+                                var strDataType = getFieldDataType((j$("#secondSelect").val()));
+                                var refObj1 = getReferenceObject1(j$("#secondSelect").val());
+                                var refObj2 = getReferenceObject2(j$("#secondSelect").val());
+                                var insertTD = document.createElement('td');
+                                var firstSeletedValue = j$("#firstSelect").val();
+                                var PrefixToAPI = '';
+                                if((refObj1 == '') && (firstSeletedValue == 'Current User'))
+                                	PrefixToAPI = '$User.';
+                                else if((refObj1 == '') && (firstSeletedValue == 'Current User Profile'))
+                                	PrefixToAPI = '$Profile.';
+                                else if((refObj1 == '') && (firstSeletedValue == 'Current User Role'))
+                                	PrefixToAPI = '$UserRole.';	
+                                else if((refObj1 != ''))
+                                    PrefixToAPI = '';
+                                else 
+                                    PrefixToAPI = '$Source.';
+                                var insertTD = document.createElement('td');
+                                insertTD.setAttribute("id", "insertBox");
+                                insertTD.setAttribute("class", "insertBox");
+                                var insertBoxHtml = '<span>You have selected:</span>';
+                                insertBoxHtml += '<span class="insertWrapperString">'+getFieldLabelForSecondSelection((j$("#secondSelect").val()))+'</span>';
+                                insertBoxHtml += '<span class="fieldPickerAttributeCategory">Type: '+strDataType+'</span>';
+                                insertBoxHtml += '<span class="fieldPickerAttributeCategory">API Name: '+PrefixToAPI+getFieldAPIName((j$("#secondSelect").val()))+'</span>';
+                                insertBoxHtml += '<span class="insertWrapperButton"><input type="button" id="insertField" value="Insert" class="btn" class="insertWrapperButton" /></span>';
+                                insertTD.innerHTML = insertBoxHtml;
+                                trrr.appendChild (insertTD);
+                                    j$("#insertField").click(function() {
+                                        var valueToInsert = j$("#secondSelect").val();
+                                        var type = '';
+                                        if(pInput=='source'){
+                                            j$('#customSrcField'+pFilterIndex).val(valueToInsert);
+                                            populateOperators(pFilterIndex, getFieldOperators(valueToInsert));
+                                            //call populate custom fields 4s 
+                                            sourceFieldLookup(pFilterIndex);
+                                            type='source';
+                                        }else{
+                                            j$('#customTrgtField'+pFilterIndex).val(valueToInsert);
+                                            //call populate custom fields 4s
+                                            sourceFieldLookup(pFilterIndex);
+                                            type='target';
+                                        }
+                                        
+                                        // 12/2/13
+                                        fieldValidation(inputId, pFilterIndex);
+                                        
+                                        var inputField = '#'+inputId;
+                                        j$(inputField).val(getFieldLabel(valueToInsert));
+                                        addDynamicFilter(type, pFilterIndex);
+                                        j$("#dialog2").dialog( "close" );
+                                    });      
+                            }else{
+                               var parentField = j$("#secondSelect").val().split('#')[1];
+                               var fieldToSearch = (j$("#firstSelect").val())+': '+(parentField.replace(" >",": "));
+                               j$("#third").remove();
+                               j$("#insertBox").remove();
+                               var TD3 = document.createElement('td');
+                               TD3.setAttribute("id", "third");
+                               TD3.innerHTML = getFields2Html(fieldToSearch);
+                               trrr.appendChild (TD3);
+                            }
+                            j$("#thirdSelect").change(function() {
+                                j$("#insertBox").remove();
+                                var strDataType3 = getFieldDataType((j$("#thirdSelect").val()));
+                                 var refObj2 = getReferenceObject2(j$("#thirdSelect").val());
+                                var prefixtoAPI = '$'+refObj2+'.';
+                                var insertTD3 = document.createElement('td');
+                                insertTD3.setAttribute("id", "insertBox");
+                                insertTD3.setAttribute("class", "insertBox");
+                                var insertBoxHtml3 = '<span>You have selected:</span>';
+                                insertBoxHtml3 += '<span class="insertWrapperString">'+getFieldLabelForThirdSelection((j$("#thirdSelect").val()))+'</span>';
+                                insertBoxHtml3 += '<span class="fieldPickerAttributeCategory">Type: '+strDataType3+'</span>';
+                                insertBoxHtml3 += '<span class="fieldPickerAttributeCategory">API Name: '+prefixtoAPI+getFieldAPIName((j$("#thirdSelect").val()))+'</span>';
+                                insertBoxHtml3 += '<span class="insertWrapperButton"><input type="button" id="insertField" value="Insert" class="btn" class="insertWrapperButton" /></span>';
+                                insertTD3.innerHTML = insertBoxHtml3;
+                                trrr.appendChild (insertTD3);
+                                    j$("#insertField").click(function() {
+                                        var valueToInsert = j$("#thirdSelect").val();
+                                        var type2='';
+                                        if(pInput=='source'){
+                                            j$('#customSrcField'+pFilterIndex).val(valueToInsert);
+                                            populateOperators(pFilterIndex, getFieldOperators(valueToInsert));
+                                            //call populate custom fields
+                                            sourceFieldLookup(pFilterIndex);
+                                            type2='source';
+                                        }else{
+                                            j$('#customTrgtField'+pFilterIndex).val(valueToInsert);
+                                            //call populate custom fields
+                                            sourceFieldLookup(pFilterIndex);
+                                            type2='target';
+                                        }
+                                        var inputField = '#'+inputId;
+                                        j$(inputField).val(getFieldLabel(valueToInsert));
+                                        addDynamicFilter(type2, pFilterIndex);
+                                        j$("#dialog2").dialog( "close" );
+                                    });      
+                            }); 
+                        }); 
+             j$("#thirdSelect").change(function() {
+                                j$("#insertBox").remove();
+                                var strDataType3 = getFieldDataType((j$("#thirdSelect").val()));
+                                var refObj2 = getReferenceObject2(j$("#thirdSelect").val());
+                                var prefixtoAPI = '$'+refObj2+'.';
+                                var insertTD3 = document.createElement('td');
+                                insertTD3.setAttribute("id", "insertBox");
+                                insertTD3.setAttribute("class", "insertBox");
+                                var insertBoxHtml3 = '<span>You have selected:</span>';
+                                insertBoxHtml3 += '<span class="insertWrapperString">'+getFieldLabelForThirdSelection((j$("#thirdSelect").val()))+'</span>';
+                                insertBoxHtml3 += '<span class="fieldPickerAttributeCategory">Type: '+strDataType3+'</span>';
+                                insertBoxHtml3 += '<span class="fieldPickerAttributeCategory">API Name: '+prefixtoAPI+getFieldAPIName((j$("#thirdSelect").val()))+'</span>';
+                                insertBoxHtml3 += '<span class="insertWrapperButton"><input type="button" id="insertField" value="Insert" class="btn" class="insertWrapperButton" /></span>';
+                                insertTD3.innerHTML = insertBoxHtml3;
+                                trrr.appendChild (insertTD3);
+                                    j$("#insertField").click(function() {
+                                        var valueToInsert = j$("#thirdSelect").val();
+                                        var type2='';
+                                        if(pInput=='source'){
+                                            j$('#customSrcField'+pFilterIndex).val(valueToInsert);
+                                            populateOperators(pFilterIndex, getFieldOperators(valueToInsert));
+                                            //call populate custom fields
+                                            sourceFieldLookup(pFilterIndex);
+                                            type2='source';
+                                        }else{
+                                            j$('#customTrgtField'+pFilterIndex).val(valueToInsert);
+                                            //call populate custom fields
+                                            sourceFieldLookup(pFilterIndex);
+                                            type2='target';
+                                        }
+                                        var inputField = '#'+inputId;
+                                        j$(inputField).val(getFieldLabel(valueToInsert));
+                                        addDynamicFilter(type2, pFilterIndex);
+                                        j$("#dialog2").dialog( "close" );
+                                    });      
+                            }); 
+    }
+    
+    //getting the related fields dynamically generated html based upon the selection of the earlier selection of option
+   function getFields1Html(pStartToken) {
+    var space = [];
+    var data = {!strFields};
+    var field1html = '<select id="secondSelect" size="9">';
+    for (var i = 0; i < data.length; i++) { 
+        var temp = data[i];
+         var t = data[0];     
+         var label = temp.label;
+         var expression = '';
+         if(isStartsWith(label,pStartToken)) {
+            var str = label.split(": "); 
+            if(str[1] != ''){
+                if((str.length)>2){
+                     if(!(space.contains(str[1]+' >'))) {
+                            space.push(str[1]+' >');
+                            var valueForOption = 'NA#' +str[1]+ ' >';
+                            field1html = field1html+'<option value="'+valueForOption+'">'+(str[1]+' >')+'</option>';    
+                      } 
+                }else{
+                    if(temp.strFieldType != null) {  
+                            expression = generateCustomExpression(temp); 
+                            field1html = field1html+'<option value="'+expression+'">'+str[1]+'</option>';
+                    }
+                }   
+            }
+ 
+         } 
+    }
+    field1html = field1html+'</select>';
+     return field1html;
+   }
+   
+   //getting the related fields dynamically generated html based upon the selection of the earlier selection of option
+   function getFields2Html(pStartToken) {
+    var data = {!strFields};
+    var space = [];
+    var field1html = '<select id="thirdSelect" size="9">';
+    for (var i = 0; i < data.length; i++) { 
+        var temp = data[i];
+        var label = temp.label;
+         if(isStartsWith(label,pStartToken)) {
+            var expression = generateCustomExpression(temp); 
+            var str =label.split(": "); 
+            space.push(str[2]);
+            field1html += '<option value="'+expression+'">'+str[2]+'</option>';              
+         }
+    }
+    field1html += '</select>'; 
+    return field1html;
+   }
+   
+   //getting the list of options for the first selection for modal lookup window
+    function getInitialLabelsHtml (inputId) {
+    //alert(inputId);
+    var data = {!strFields};
+    var firstSelect = '<select id="firstSelect" size="9">';
+            var space = [];
+              for (var i = 0; i < data.length; i++){ 
+                 var temp = data[i];
+                 var t = data[0];
+                 var label = temp.label;
+                 var n=label.split(":");
+                 if(!(space.contains(n[0]))){
+                    space.push(n[0]);
+                    var fieldLabel = n[0]+' >';
+                    if(i==0)
+                    	sourceObject = n[0];
+                    firstSelect = firstSelect+'<option id="first'+i+'" title="Insert Field" value="'+n[0]+'">'+fieldLabel+'</option>';
+                 }
+        } 
+    firstSelect = firstSelect + '</select>';
+    return firstSelect;
+   }
+   
+   //getting the value(custom exp) to select the 2nd level piklist option
+   function getSecondValueToSelect(text){
+   		var data = {!strFields};
+   		var customExpToSelect = '';
+   		for (var i = 0; i < data.length; i++){
+   		    var temp = data[i];
+   			if((temp.label) == text){
+   				customExpToSelect = generateCustomExpression(temp);
+   			}
+   		}
+   		return customExpToSelect;
+   }
+   
+   
+   //function for lookup popup window for picklist or boolean field data type.
+   var newWin=null;
+   function openLookupPopup(pFilterIndex, pFieldDataType, pFieldApi, pObjectApi) {
+      var params = '';
+
+     // var inputValue = '\''+document.getElementById('targetField'+pFilterIndex).value+'\'';
+      var inputValue = '';  
+      if(pFieldDataType == 'Boolean')
+      	  inputValue = document.getElementById('targetField'+pFilterIndex).value;
+      var filterTargetId = 'targetField'+pFilterIndex;
+      params += "pInputValue="+inputValue+"&";
+      params += "pFilterIndex="+pFilterIndex+"&";
+      params += "fType="+pFieldDataType+"&";
+      params += "fieldApi=" + pFieldApi + "&";
+      params += "objApi=" + pObjectApi + "&";
+      params += 'filterTargetId='+filterTargetId;
+      var url="/apex/FormulaFilterLookupPage?" + params;
+      newWin=window.open(url, 'Popup','height=650,width=800,left=100,top=100,resizable=no,scrollbars=yes,toolbar=no,status=no');
+      if (window.focus) {
+        newWin.focus();
+      }
+     return false;
+    }
+    
+    //This method displays an informational message when a filter is saved successfully
+    function saveComplete(pErrorMsg) {
+    	alert(pErrorMsg);
+    }
+    
+    //This method validates against a date instance
+    function isValidDate(date)
+	{
+	    var matches = /^(\d{2}|\d{1})[\/](\d{2}|\d{1})[\/](\d{4})$/.exec(date);
+	    if (matches == null) {
+		    return false;
+	    }
+	    var d = matches[2];
+	    var m = matches[1] - 1;
+	    var y = matches[3];
+	    //alert(y);
+	    var composedDate = new Date(y, m, d);
+	    //alert(composedDate);
+	     return(composedDate.getDate() == d &&
+	            composedDate.getMonth() == m &&
+	            composedDate.getFullYear() == y);
+	}
+
+	//This method validates against a datetime instance
+    function isValidDateTime(datetime) {
+		var matches = /^(\d{2}|\d{1})[/](\d{2}|\d{1})[/](\d{4})[\s](0?[1-9]|1[012])(:[0-5]\d) [APap][mM]$/.exec(datetime);
+	    var isdatetime = false;
+	    if (matches == null) {
+		    isdatetime = false;
+	    }
+	    var isdate = isValidDate(datetime);
+	    if(matches != null){
+	    	var d = matches[2];
+		    var m = matches[1] - 1;
+		    var y = matches[3];
+		    var composedDate = new Date(y, m, d);
+		    isdatetime = (composedDate.getDate() == d &&
+		            composedDate.getMonth() == m &&
+		            composedDate.getFullYear() == y);
+	    }
+	    if(isdatetime || isdate){
+	    	return true;
+	    }else{
+	    	return false;
+	    }        
+   }    
+   
+   function isLabelPresent(labelToCheck) {
+   	var data = {!strFields};
+   	var isLabelPresent = false;
+   	var lastChar = false;
+   	var n = labelToCheck.substring(labelToCheck.length,(labelToCheck.length-1));
+    if(n == ':')
+    	lastChar = true;
+       
+    for (var i = 0; i < data.length; i++) { 
+        if((!isLastCharacter(labelToCheck)) && (!lastChar)){
+        	if(labelToCheck==data[i].label){
+    			return true;
+    	    }
+        }
+    }
+    return false;
+   } 
+   
+   //replaces the qualifier " with //" - used while json string constrution.
+   function replaceCharacters(origString) {
+	  var inChar = '"';
+	  var outChar = '\\"';
+	  var newString = origString.split(inChar);
+	  newString = newString.join(outChar);
+	  return newString;
+   }
+    
+   function parentFunction(pTargetFieldId,pSelectedValues,pHiddenId,pType){
+        var tempValue = document.getElementById(pTargetFieldId).value;
+        if(pType == 'Picklist'){
+        	if(tempValue != '') {
+        	   document.getElementById(pTargetFieldId).value = tempValue+','+pSelectedValues;
+        	   document.getElementById(pHiddenId).value = tempValue+','+pSelectedValues;
+	        }
+		    else{
+		    	document.getElementById(pTargetFieldId).value = pSelectedValues;  
+		        document.getElementById(pHiddenId).value = pSelectedValues;
+		    }
+        }else{
+            document.getElementById(pTargetFieldId).value = pSelectedValues;  
+		    document.getElementById(pHiddenId).value = pSelectedValues;
+        }
+        
+	    newWin.close();
+   } 
+    </script>
+    
+    <apex:form id="frmFieldFilter">
+    	
+    	<apex:actionFunction name="validateAtServer" 
+    						 action="{!save}" 
+    						 reRender="divFieldFilter"
+    						 oncomplete="saveComplete('{!strSaveErrorMsg}');">
+    		<apex:param name="strJson" value="" assignTo="{!strJSONToSave}"/>
+    		<apex:param name="strFilter" value="" assignTo="{!strFilterLogic}"/>
+    	</apex:actionFunction>
+    	
+        <apex:outputPanel >
+        <div style="margin-left:40px;font-size: 91%;" class="errorMsg hidden" id="titleError"></div>
+        <div style="margin-left:665px;font-size: 91%;"><a onclick="clearAll();" id="clearAll" href="javascript:void(0);">Clear Filter Criteria</a> </div>
+        <div class="divFieldFilter">
+            <table width="57%" cellspacing="0" class="tblFieldFilter">
+                <tr>
+                <td> </td>
+                    <th scope="col" colspan="2">Field</th>
+                    <th scope="col">Operator</th>
+                    <th scope="col" colspan="2">Value / Field</th>
+                </tr>
+            </table>
+        </div>
+        <div class="divFilterLogic">
+            <br></br>
+            <table width="57%" cellspacing="0" class="tblFilterLogic">
+            
+            <tr>
+                <td><a style="font-size: 91%;" href="javascript:void(0);" id="filterLogic" onclick="showHideFilterLogic(this);">Add Filter Logic</a></td>
+            </tr>
+            
+            <tr>
+                <td><label id="lblFilterLogic" style="font-size: 91%;" class="hidden">Filter Logic:</label></td>
+            </tr>
+    
+            <tr>
+                <td><input id="txtFilterLogic" value="{!strFilterLogic}" class="hidden" type="text" size="80" name="bool_filter" maxlength="255"/>
+                
+                <a id="tips" style="font-size: 91%;" title="Tips (New Window)" class="tipsLink hidden" href="javascript:openPopupFocusEscapePounds(%27https://login.salesforce.com/services/auth/sso/00D30000000XsfGEAS/HTAuthProvider?startURL=%252Fapex%252Fhtdoor%253Floc%253Dhelp%2526target%253Dworking_with_advanced_filter_conditions_in_reports_and_list_views.htm%2526section%253DReports%2526language%253Den_US%2526release%253D182.9%2526instance%253DAP1&amp;site=https%3A%2F%2Fhelp.salesforce.com%27, %27Help%27, 1024, 768, %27width=1024,height=768,resizable=yes,toolbar=yes,status=yes,scrollbars=yes,menubar=yes,directories=no,location=yes,dependant=no%27, false, false);"><span class="helpLink brandTertiaryFgr">Tips</span>&nbsp;&nbsp;<img title="Help" class="helpIcon" alt="Help" src="/s.gif"/></a></td>
+            </tr>
+            
+            <tr>
+            	<td><label class="errorMsg errorDiv hidden" id="filterLogicError">Error: Field not found</label></td>
+            </tr>
+            
+            <tr>
+                <td><label id="lblCreateCondition" style="font-size: 91%;" class="hidden">Create conditions using ANDs and ORs. <strong>Example:</strong> (1 AND 2) OR 3</label></td>
+            </tr>            
+            
+            </table>
+            <br></br>
+        </div>
+        <input class="btn" type="button" value="Save" onclick="preSave();"/> 
+        <apex:commandButton value="Cancel"/>
+        <div id="dialog2" title="Insert Field">
+            <div id="infoMsg"></div>
+            <div id="fieldSelection">
+                <table id="SelectFields">
+                    <tr id="SelectList">
+                    </tr>
+                </table>
+            </div>
+            <div id="FieldTreeDialogId_buttons" class="buttons zen"
+                style="text-align: center;"></div>
+        </div>
+        <div id="listDiv" style="position: absolute;" onblur="hideDiv();">
+        <ul id="menu" class="ui-menu ui-widget ui-corner-all" role="listbox" tabindex="0" 
+        aria-activedescendant="ui-active-menuitem" style="resize: none;position: absolute;width:300px;">
+</ul></div>
+        </apex:outputPanel>
+    </apex:form>
+</apex:page>

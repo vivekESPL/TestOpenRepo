@@ -1,0 +1,13 @@
+<apex:page controller="AccountToVFController">
+	
+	<apex:pageBlock title="Account Details">
+	
+	<apex:pageBlockTable value="{!accounts}" var="acc">
+		<apex:column value="{!acc.Id}"/>
+		<apex:column value="{!acc.Name}"/>
+		<apex:column value="{!acc.Full_Name__c}"/> 
+		<apex:column value="{!acc.Email__c}"/>
+	</apex:pageBlockTable>
+
+	</apex:pageBlock>
+</apex:page>

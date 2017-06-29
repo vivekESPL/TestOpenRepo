@@ -1,0 +1,164 @@
+<apex:page standardController="Campaign" recordSetVar="Scontroller" extensions="campaignDetailsExtension">
+ <head>
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1256" />
+<style type="text/css">
+
+
+.menuHead { font-weight: bold; font-size: larger;color:white;background-image: http://www.designdownloader.com/item/pngl/button60/button60-20110809001358-00003.png}
+.menuChoices { background-color: #DCDCDC; width: 200px;}
+.a {color: #000000; text-decoration: none;}
+.menu a:hover {text-decoration: underline;}
+
+
+</style>
+
+<script type="text/javascript">
+    window.onload = function() {  
+
+    hide('menu1');
+    } 
+/* Don't hide menus for JS off and older browsers */
+if (DOMCapable)
+{
+hide("menu1");
+hide("menu2");
+hide("menu3");
+}
+
+
+
+</script>
+
+<script type="text/javascript">
+
+/* we'll only allow DOM browsers to simplify things*/
+(document.getElementById ? DOMCapable = true : DOMCapable = false);
+function hide(menuName)
+{
+if (DOMCapable)
+{
+var theMenu = document.getElementById(menuName+"choices");
+theMenu.style.visibility = 'hidden';
+}
+}
+function show(menuName)
+{
+if (DOMCapable)
+{
+var theMenu = document.getElementById(menuName+"choices");
+theMenu.style.visibility = 'visible';
+}
+}
+
+</script>
+
+</head>
+ 
+
+ <apex:pageBlock title="Campaign Details">
+
+    <apex:form >
+    
+
+ <apex:toolbar id="theToolbar" style="max-height:10px">
+
+<apex:toolbarGroup itemSeparator="line" id="toobarGroupLinks">
+<apex:outputLink value="{!editlink}" style="color:white;margin-right:20px">
+Edit
+</apex:outputLink>
+<apex:outputLink value="{!copylink}" style="color:white;margin-right:20px">
+Copy
+</apex:outputLink>
+</apex:toolbarGroup>
+
+<apex:toolbarGroup itemSeparator="line" location="right" style="color:red">
+<div id="menu1" dir="rtl" class="menu" onmouseover="show('menu1');" onmouseout="hide('menu1');" style="margin-right: 50px">
+<div class="menuHead">Actions
+
+</div>
+<div id="menu1choices" class="menuChoices">
+<a href="http://www.salesforce.com">Manage Users</a><br />
+<a href="http://www.google.com">Add Members from mailing list</a><br />
+
+</div>
+</div>
+</apex:toolbarGroup>
+</apex:toolbar> 
+        <apex:pageBlockSection columns="2" >
+                <apex:pageBlockSectionItem >
+                <apex:outputLabel value="Campaign Owner" />
+                <apex:outputLabel value="" />
+                </apex:pageBlockSectionItem>
+                
+                <apex:pageBlockSectionItem >
+                <apex:outputLabel value="Category" />
+                <apex:outputLabel value="" />
+                </apex:pageBlockSectionItem>
+         </apex:pageBlockSection>   
+        
+          <apex:pageBlockSection columns="2">
+                <apex:pageBlockSectionItem >
+                <apex:outputLabel value="Campaign Name" />
+                <apex:outputLabel value="{!page.Name}" />
+                </apex:pageBlockSectionItem>
+                
+                <apex:pageBlockSectionItem >
+                <apex:outputLabel value="Type" />
+                <apex:outputLabel value="{!page.Type}" />
+                </apex:pageBlockSectionItem>
+         </apex:pageBlockSection>
+         
+         <apex:pageBlockSection columns="2">
+                <apex:pageBlockSectionItem >
+                <apex:outputLabel value="Start Date" />
+                <apex:outputLabel value="{!page.StartDate}" />
+                </apex:pageBlockSectionItem>
+                
+                <apex:pageBlockSectionItem >
+                <apex:outputLabel value="Num Sent" />
+                <apex:outputLabel value="{!page.NumberSent}" />
+                </apex:pageBlockSectionItem>
+         </apex:pageBlockSection>
+         
+         <apex:pageBlockSection columns="2">
+                <apex:pageBlockSectionItem >
+                <apex:outputLabel value="End Date" />
+                <apex:outputLabel value="{!page.EndDate}" />
+                </apex:pageBlockSectionItem>
+                
+                <apex:pageBlockSectionItem >
+                <apex:outputLabel value="Parent Campaign" />
+                <apex:outputLabel value="" />
+                </apex:pageBlockSectionItem>
+         </apex:pageBlockSection>
+         
+         <apex:pageBlockSection columns="2">
+                <apex:pageBlockSectionItem >
+                <apex:outputLabel value="Created By" />
+                <apex:outputLabel value="{!page.createdbyid}" />
+                </apex:pageBlockSectionItem>
+                
+                <apex:pageBlockSectionItem >
+                <apex:outputLabel value="Status" />
+                <apex:outputLabel value="{!page.Status}" />
+                </apex:pageBlockSectionItem>
+         </apex:pageBlockSection>
+         
+          <apex:pageBlockSection columns="2">
+                <apex:pageBlockSectionItem >
+                <apex:outputLabel value="Modified By" />
+                <apex:outputLabel value="" />
+                </apex:pageBlockSectionItem>
+         </apex:pageBlockSection>
+         
+          <apex:pageBlockSection columns="2">
+                <apex:pageBlockSectionItem >
+                <apex:outputLabel value="Description" />
+                <apex:outputLabel value="{!page.Description}" />
+                </apex:pageBlockSectionItem>
+         </apex:pageBlockSection>
+       
+    </apex:form>
+    </apex:pageBlock>
+
+</apex:page>

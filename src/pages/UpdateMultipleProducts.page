@@ -1,0 +1,26 @@
+<apex:page standardController="Product2" recordSetVar="Products2" tabStyle="Product2">
+<apex:sectionHeader Title="Update {!$ObjectType.Product2.LabelPlural}"/>
+    <apex:form >
+        <apex:pageBlock title="Update Multiple Products" mode="edit">
+            <apex:pageMessages /> 
+            <apex:pageBlockButtons location="bottom">
+                <apex:commandButton value="Save" action="{!save}"/>
+                <apex:commandButton value="Cancel" action="{!cancel}"/>
+            </apex:pageBlockButtons>
+            <apex:pageBlockTable value="{!Products2}" var="prod">
+                <apex:column headerValue="Product Name">
+                    <apex:inputField value="{!prod.Name}"/>
+                </apex:column> 
+                <apex:column headerValue="Product Code">
+                    <apex:inputField value="{!prod.productcode}"/>
+                </apex:column>               
+                <apex:column headerValue="Active">
+                    <apex:inputField value="{!prod.isactive}"/>
+                </apex:column>
+                <apex:column headerValue="Family">
+                    <apex:inputField value="{!prod.family}"/>
+                </apex:column>
+            </apex:pageBlockTable>      
+        </apex:pageBlock>
+    </apex:form>
+</apex:page>

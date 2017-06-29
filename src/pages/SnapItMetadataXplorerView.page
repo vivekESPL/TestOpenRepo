@@ -1,0 +1,127 @@
+<apex:page controller="SnapItMetadataXplorerCtl" action="{!getAllSFDCObjects}">
+   
+  <apex:pageMessages />
+  <apex:stylesheet value="{!URLFOR($Resource.SnapItMetadataXplorerResources, '/SnapItMetadataXplorerResources/css/SnapItMetadataXplorerStyle.css')}"/>
+
+  <apex:sectionHeader id="header" title="SnapIt Metadata Xplorer"/>
+  <apex:outputPanel id="showError" >
+    <apex:pageMessages />
+  </apex:outputPanel> 
+  <apex:form > 
+ 
+     <apex:outputPanel id="pnlInput" styleClass="generalNormal">
+        <apex:pageBlock mode="edit" title="Metadata Details" helptitle="SnapIt Metadata Xplorer Help"  helpUrl="/apex/SnapItMetadataXplorerHelp">           
+            <apex:pageBlockButtons location="bottom">           
+                <table>
+                    <tr>
+                        <td>
+                         <apex:outputPanel id="pnlButton">
+                            <apex:commandButton action="{!processSelectedSobjects}" disabled="{!IsShowMetadataBtnDisabled}" rerender="showError,pnlPoller, pnlDisplaySelectedObjCnt, pnlDisplayProcessedBatchCnt, pnlButton" value="Show Metadata" styleClass="generalNormal" status="tableStatus"/>
+                         </apex:outputPanel>
+                        </td>
+                        <td>
+                            <apex:outputPanel id="pnlDisplayProcessedBatchCnt"> 
+                                <apex:outputLabel value="Processing {!MapKey} Of {!BatchMapSize} Batches..." rendered="{!IF(IsPollerEnabled == True, True, False)}" styleclass="generalNormal"/>
+                            </apex:outputPanel>
+                        </td>
+                        <td>
+                            <div align="right"><apex:outputPanel id="pnlDisplaySelectedObjCnt"> 
+                               <apex:outputLabel id="lblSlectedObjCnt" value="Selected Object Count: {!SelectedObjCnt}" styleclass="generalNormal" rendered="{!IF(IsSelectedObjCntLabelVisible = True, True, False)}"/>
+                            </apex:outputPanel></div>           
+                        </td>
+                    </tr>
+                </table> 
+            </apex:pageBlockButtons>
+            
+            <br/>
+            <apex:outputLabel value="Select Object(s):" styleClass="generalBold"/>&nbsp;&nbsp;&nbsp;&nbsp;
+            <apex:selectList id="selectObject" value="{!SelectedObjectNameList}" size="5" styleClass="generalNormal" multiselect="true">
+                <apex:selectOptions value="{!SFDCObjectList}"/>
+            </apex:selectList>&nbsp;&nbsp;
+            
+            <p>
+            <apex:outputLabel value="Select Field Category:" styleClass="generalBold" for="selectCategory"/>
+            <apex:selectRadio id="selectCategory" layout="linedirection" value="{!SelectedFieldCategory}" styleClass="fldCategory">
+                <apex:selectOptions value="{!FieldCategoryLabels}"/>
+            </apex:selectRadio></p>
+            
+        </apex:pageBlock>
+      </apex:outputPanel> 
+      
+      <apex:outputPanel id="pnlPoller">
+        <apex:actionPoller action="{!getAllFields}" enabled="{!IsPollerEnabled}" rerender="pnlDisplayProcessedBatchCnt, pnlDisplayAllDetails, pnlNavigation, pnlButton" interval="5" status="tableStatus"/>
+      </apex:outputPanel>
+  </apex:form>
+   
+  <apex:actionStatus id="tableStatus" onstart="document.body.style.cursor='wait';return true;" onStop="document.body.style.cursor='default';return true;" startStyleClass="generalNormal">
+      <apex:facet name="start" >                
+          <center>
+                <img src="{!URLFOR($Resource.SnapItMetadataXplorerResources, '/SnapItMetadataXplorerResources/img/Loading.gif')}"/>&nbsp;Loading... 
+          </center>                
+      </apex:facet> 
+      <apex:facet name="stop"/>
+  </apex:actionStatus>
+  
+  <apex:outputPanel id="pnlDisplayAllDetails"> 
+  <apex:form >
+      <table width="100%">
+      <tr>
+        <td width="50%">        
+            <apex:outputPanel id="pnlNavigation" styleClass="generalBold" rendered="{!IsFieldTableVisible}">
+              <div align="left">
+                    <apex:commandLink id="lnkFirst" value="First" action="{!getFirstDisplayBatch}" rendered="{!IsFirstLastVisible}" rerender="pnlDisplayAllDetails, pnlNavigation" status="tableStatus" />&nbsp;
+                    <apex:commandLink id="lnkPrev" value="Prev" action="{!getPreviousDisplayBatch}" rendered="{!IsPreviousVisible}" rerender="pnlDisplayAllDetails, pnlNavigation" status="tableStatus"  />&nbsp;
+                    <apex:commandLink id="lnkNext" value="Next" action="{!getNextDisplayBatch}"  rendered="{!IsNextVisible}" rerender="pnlDisplayAllDetails, pnlNavigation" status="tableStatus" />&nbsp;
+                    <apex:commandLink id="lnkLast" value="Last" action="{!getLastDisplayBatch}" rendered="{!IsFirstLastVisible}" rerender="pnlDisplayAllDetails, pnlNavigation" status="tableStatus" />
+              </div> 
+             </apex:outputPanel>
+        </td>
+        <td width="50%">
+              <apex:outputPanel id="pnlExport" styleClass="generalNormal" rendered="{!IsFieldTableVisible}">
+              <div align="right">
+              <table>
+                <tr>
+                    <td valign="middle"><apex:commandLink action="{!exportToExcel}" value="Export to Excel" title="Export to Excel" styleClass="generalNormal"/></td>
+                    <td><apex:image value="{!URLFOR($Resource.SnapItMetadataXplorerResources, '/SnapItMetadataXplorerResources/img/ExportToExcel.png')}" title="Excel"/> &nbsp; &nbsp;</td>
+                    <td valign="middle"><apex:commandLink action="{!exportToPdf}"  value="Export to PDF" title="Export to PDF" styleClass="generalNormal"/></td>
+                    <td><apex:image value="{!URLFOR($Resource.SnapItMetadataXplorerResources, '/SnapItMetadataXplorerResources/img/ExportToPdf.gif')}" title="PDF"/></td>
+                </tr>
+              </table>
+              </div>
+             </apex:outputPanel> 
+        </td>
+      </tr>  
+      </table>
+  </apex:form>
+  
+  <apex:outputPanel id="pnlDisplayTable" styleClass="generalNormal" rendered="{!IsFieldTableVisible}">
+      <apex:dataTable id="tblDisplayFieldInfo" value="{!DisplaySFDCFieldList}" var="ft" cellspacing="1" rowClasses="odd,even" align="left" width="100%">    
+           <apex:column headerValue="OBJECT" width="20%" dir="LTR" rowspan="1" headerClass="tableHeader" styleClass="columnFontLeft">
+               <apex:outputText value="{!ft.SObjectName}"/>
+           </apex:column> 
+            
+           <apex:column headerValue="LABEL" width="20%" dir="LTR" rowspan="1" headerClass="tableHeader" styleClass="columnFontLeft">
+               <apex:outputText value="{!ft.FieldLabel}"/>
+           </apex:column>
+            
+           <apex:column headerValue="API NAME" width="20%" dir="LTR" headerClass="tableHeader" styleClass="columnFontLeft">
+               <apex:outputText value="{!ft.FieldName}"/>
+           </apex:column>
+           
+           <apex:column headerValue="DATA TYPE" width="20%" dir="LTR" headerClass="tableHeader" styleClass="columnFontLeft">
+               <apex:outputText value="{!ft.FieldDataType}"/>
+           </apex:column>
+           
+           <apex:column headerValue="DETAILS" width="20%" dir="LTR" headerClass="tableHeader" styleClass="columnFontLeft">
+               <apex:outputText value="{!ft.FieldDetails}"/> 
+           </apex:column>
+      </apex:dataTable>
+  </apex:outputPanel>
+   
+ </apex:outputPanel>
+ 
+ <div align="center" class="statusStyle">
+    Copyright ©2011 Eternus Solutions Private Limited. Visit <a href="http://www.eternussolutions.com">www.eternussolutions.com</a> for further information.
+ </div> 
+        
+</apex:page>

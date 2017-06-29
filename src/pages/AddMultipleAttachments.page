@@ -1,0 +1,17 @@
+<apex:page standardController="Account" extensions="AddMultipleAttachmentsExtension">
+	<apex:form id="idForm">
+		
+		<apex:pageBlock title="Add Multiple Attachments"> 
+			<apex:pageBlockButtons >
+				<apex:commandButton action="{!SaveAttachments}" value="Save Attachments"/>
+			</apex:pageBlockButtons>
+			
+			<apex:pageBlockSection title="Select attachment">
+			<apex:pageBlockSectionItem >
+			<apex:inputFile value="{!objAttachment.body}" filename="{!objAttachment.name}"/>
+			</apex:pageBlockSectionItem>
+			</apex:pageBlockSection>		
+		</apex:pageBlock>
+			
+	</apex:form>
+</apex:page>

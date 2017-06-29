@@ -1,0 +1,69 @@
+<apex:page controller="CampaignController">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1256" />
+<script type="text/javascript">
+        
+          var previousOnload = window.onload;         
+          window.onload = function() {
+              if (previousOnload) {
+                  previousOnload();
+                  loadDataFromServer();
+              }
+          }
+      </script>
+      </head>
+
+    <apex:form > 
+    
+       <apex:actionFunction name="loadDataFromServer" id="loadDataFromServer" action="{!GetRecords}" reRender="out" />
+    
+        <apex:pageBlock title="Campaign Management">            
+           
+             <apex:pageBlockSection >
+             <apex:pageBlockSectionItem >
+     		<apex:selectList id="test" value="{!view.Name}" size="1">
+                    <apex:actionSupport event="onchange" action="{!GetRecords}" rerender="out" status="status"/>
+                    <apex:selectOption itemValue="Recently Modified" itemLabel="Recently Modified" />
+     				<apex:selectOption itemValue="All Campaigns" itemLabel="All Campaigns"/>
+     				<apex:selectOption itemValue="All Active Campaigns" itemLabel="All Active Campaigns"/>
+     				<apex:selectOption itemValue="My Active Campaigns" itemLabel="My Active Campaigns"/>
+     				<apex:selectOption itemValue="Inactive Campaigns" itemLabel="Inactive Campaigns"/>
+            </apex:selectList>
+         
+            </apex:pageBlockSectionItem>
+          </apex:pageBlockSection> 
+                    
+   <apex:outputPanel id="out" style="margin-top:10px">
+        <apex:actionstatus id="status">
+          
+            <apex:facet name="start">
+  
+           <img src="http://www.csnbayarea.com/common/global_images/loadingAnimation.gif"></img> 
+		</apex:facet>
+            
+ <apex:facet name="stop">                
+ <apex:pageBlockTable value="{!CampaignRecords}" var="campaign1" border="1" id="out1">
+ <apex:column >
+ <apex:outputlink value="https://c.ap1.visual.force.com/apex/Campaign_Details">{!campaign1.name}
+ <apex:param name="id" value="{!campaign1.id}">
+ </apex:param>
+ </apex:outputlink>
+</apex:column>
+ <apex:column value="{!campaign1.Type}"/>
+ <apex:column value="{!campaign1.Status}"/>
+ <apex:column value="{!campaign1.StartDate}"/>
+</apex:pageBlockTable>
+</apex:facet>
+
+    </apex:actionstatus>
+    
+     <apex:commandLink action="{!Previous}" title="Previous Page" value="Previous" rendered="{!stdcampaign.HasPrevious}" rerender="out" status="status" style="color:blue"/>  
+                 &nbsp;&nbsp;
+                  <apex:commandLink title="Next Page" value="Next" rendered="{!stdcampaign.HasNext}" action="{!Next}" rerender="out"  status="status" style="color:blue"/>&nbsp;
+    </apex:outputPanel>
+        
+                
+                           
+    </apex:pageBlock>
+    </apex:form>
+</apex:page>

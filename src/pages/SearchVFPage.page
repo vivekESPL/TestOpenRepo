@@ -1,0 +1,95 @@
+<apex:page controller="SearchVFPageController">
+	
+	<apex:form >
+		<apex:pageBlock mode="edit" id="block">
+		<apex:pageMessages />
+		<apex:pageBlockSection >
+		<apex:pageBlockSectionItem >
+		<apex:outputLabel for="searchText">Search Text</apex:outputLabel>
+		
+			<apex:panelGroup >
+			<apex:inputText id="searchText" value="{!searchText}" style="{!TextAreaStyle}"/>
+			<apex:commandButton value="Go!" action="{!doSearch}" rerender="block,results,results1,results2,results3" status="status"/>
+			</apex:panelGroup>
+			
+		</apex:pageBlockSectionItem>
+		 
+		</apex:pageBlockSection> 
+		
+			</apex:pageBlock>
+			
+			<apex:actionStatus id="status" startText="Searching..." >
+        		<apex:facet name="start">
+         		<center> <br/>   
+           		<img src="{!$Resource.LoadingImage}" border="0"/>
+         		</center>
+      			</apex:facet>
+   			</apex:actionStatus>
+			
+		<apex:pageBlock id="results">
+		
+		<apex:pageBlockTable value="{!results_lead}" var="l" rendered="{!NOT(ISNULL(results_lead))}">
+			<apex:column >
+			<apex:facet name="header">Name
+			</apex:facet>
+			<apex:outputLink value="{!Link}/{!l.Id}">{!l.name}
+			</apex:outputLink>
+			
+			</apex:column>
+			<apex:column value="{!l.name}"/>
+			<apex:column value="{!l.FirstName}"/>
+			<apex:column value="{!l.LastName}"/>
+			<apex:column value="{!l.Email}"/>
+			
+			</apex:pageBlockTable> 
+			</apex:pageBlock>
+			
+			
+		<apex:pageBlock id="results1">
+		
+		<apex:pageBlockTable value="{!results_contact}" var="l" rendered="{!NOT(ISNULL(results_contact))}">
+			<apex:column >
+			<apex:outputLink value="{!Link}/{!l.Id}">{!l.name}
+			</apex:outputLink>
+			</apex:column>
+			<apex:column value="{!l.FirstName}"/>
+			<apex:column value="{!l.LastName}"/>
+			<apex:column value="{!l.Email}"/>
+			
+			</apex:pageBlockTable>
+			</apex:pageBlock>		
+			 
+			 
+		<apex:pageBlock id="results2">
+	
+		
+		<apex:pageBlockTable value="{!results_account}" var="l" id="results2" rendered="{!NOT(ISNULL(results_account))}">
+			<apex:column >
+			<apex:outputLink value="{!Link}/{!l.Id}">{!l.name}
+			</apex:outputLink>
+			</apex:column>
+			<apex:column value="{!l.First_Name__c}"/>
+			<apex:column value="{!l.Last_Name__c}"/>
+			<apex:column value="{!l.Email__c}"/>
+		
+			</apex:pageBlockTable>
+			</apex:pageBlock>		
+			
+			
+		<apex:pageBlock id="results3">
+		
+		<apex:pageBlockTable value="{!results_opportunity}" var="l" rendered="{!NOT(ISNULL(results_opportunity))}">
+			<apex:column >
+			<apex:outputLink value="{!Link}/{!l.Id}">{!l.name}
+			</apex:outputLink>
+			</apex:column>
+			<apex:column value="{!l.Type}"/>
+			<apex:column value="{!l.CloseDate}"/>
+			
+			
+			</apex:pageBlockTable>
+			</apex:pageBlock>		
+			
+
+	</apex:form>
+</apex:page>

@@ -1,0 +1,55 @@
+<apex:page controller="DisplayImageController">
+<link rel="stylesheet" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css" />
+<apex:includeScript value="http://code.jquery.com/jquery-1.9.1.js"/>
+<apex:includeScript value="http://code.jquery.com/ui/1.10.3/jquery-ui.js"/>
+<script>
+	$(function() {
+		//$( "#imageDiv" ).draggable();
+		$( "#imageDiv" ).resizable();
+	});
+</script>
+
+<style>
+	.divClass{
+		border:1px solid black;
+		position: absolute;
+	}
+	
+	.w-cursor {
+    	cursor: w-resize;
+	}
+	
+	.e-cursor {
+    	cursor: e-resize;
+	}
+</style>
+
+<apex:form >
+	<div id="imageDiv"  class="divClass ui-widget-content ui-resizable">
+		<table cellspacing="0" cellpadding="0" id="tableId">
+			<tr>
+				<td class="w-cursor" width="5px"></td>
+				<td style="cursor:move;"><apex:image url="{!imageURL}">
+    				</apex:image>
+    			</td>
+				<td class="e-cursor" width="5px"></td>
+			</tr>
+		</table>    	
+    </div>
+    
+<!--     <div id="imageDiv1"  class="divClass ui-widget-content ui-resizable"> -->
+<!-- 		<table cellspacing="0" cellpadding="0" id="tableId1"> -->
+<!-- 			<tr> -->
+<!-- 				<td class="w-cursor" width="5px"></td> -->
+<!-- 				<td style="cursor:move;"><apex:inputText > -->
+<!--     				</apex:inputText> -->
+<!--     			</td> -->
+<!-- 				<td class="e-cursor" width="5px"></td> -->
+<!-- 			</tr> -->
+<!-- 		</table>    	 -->
+<!--     </div> -->
+    
+<!--     <div id="imageDiv2" class="divClass ui-widget-content ui-resizable" style="width:50px;height:50px"> -->
+<!--     </div> -->
+</apex:form> 
+</apex:page>

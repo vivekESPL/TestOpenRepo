@@ -1,0 +1,328 @@
+<apex:page standardController="Account" extensions="TeamMember" id="thePage" sidebar="false" showHeader="false">
+     <apex:includeScript value="{!URLFOR($Resource.VisualizationResources,'JSFiles/jquery.js')}"  />
+     <apex:includeScript value="{!URLFOR($Resource.VisualizationResources,'JSFiles/jquery.roundabout.js')}"  />
+     <apex:includeScript value="{!URLFOR($Resource.VisualizationResources,'JSFiles/jquery.bgiframe.js')}"  />
+     <apex:includeScript value="{!URLFOR($Resource.VisualizationResources,'JSFiles/jquery.dimensions.js')}"  />
+     <apex:includeScript value="{!URLFOR($Resource.VisualizationResources,'JSFiles/jquery.tooltip.js')}"  />
+     <style>
+                 #tooltip {
+            position: absolute;
+            z-index: 3000;
+            border: 1px solid #111;
+            background-color: #eee;
+            padding: 5px;
+            opacity: 0.85;
+        }
+        #tooltip h3, #tooltip div { margin: 0; }
+     
+     </style>
+     <style>
+             html, body, div, span, applet, object, iframe,
+        h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+        a, abbr, acronym, address, big, cite, code,
+        del, dfn, em, font, img, ins, kbd, q, s, samp,
+        small, strike, strong, sub, sup, tt, var,
+        dl, dt, dd, ol, ul, li,
+        fieldset, form, label, legend,
+        table, caption, tbody, tfoot, thead, tr, th, td {
+            margin: 0;
+            padding: 0;
+            border: 0;
+            outline: 0;
+            font-weight: inherit;
+            font-style: inherit;
+            font-size: 100%;
+            font-family: inherit;
+            vertical-align: baseline;
+        }
+        fieldset {
+            border: 1px solid black; padding: 8px; margin: 8px 0;
+        }
+        /* remember to define focus styles! */
+        :focus {
+            outline: 0;
+        }
+        body {
+            line-height: 1;
+            color: black;
+            background: white;
+        }
+        
+        body, div { font-family: 'lucida grande', helvetica, verdana, arial, sans-serif }
+        body { margin: 0; padding: 0; font-size: small; color: #333 }
+        h1, h2 { font-family: 'trebuchet ms', verdana, arial; padding: 10px; margin: 0 }
+        h1 { font-size: large }
+        #main { padding: 1em; }
+        #banner { padding: 15px; background-color: #06b; color: white; font-size: large; border-bottom: 1px solid #ccc;
+            background: url(bg.gif) repeat-x; text-align: center }
+        #banner a { color: white; }
+        legend { font-weight: bold; }
+        
+        button { padding: 0 6px; margin: 0; }
+        
+        pre, code { white-space: pre; font-family: "Courier New"; }
+        pre { margin: 8px 0; }
+        h3 {
+            font-size: 110%;
+            font-weight: bold;
+            margin: .2em 0 .5em 0;
+        }
+        p { margin: 1em 0; }
+        strong { font-weight: bolder; }
+        em { font-style: italic; }
+        
+        .jscom, .mix htcom   { color: #4040c2; }
+        .com      { color: green; }
+        .regexp   { color: maroon; }
+        .string   { color: teal; }
+        .keywords { color: blue; }
+        .global   { color: #008; }
+        .numbers  { color: #880; }
+        .comm     { color: green; }
+        .tag      { color: blue; }
+        .entity   { color: blue; }
+        .string   { color: teal; }
+        .aname    { color: maroon; }
+        .avalue   { color: maroon; }
+        .jquery   { color: #00a; }
+        .plugin   { color: red; }
+        
+        #tooltip.pretty {
+            font-family: Arial;
+            border: none;
+            width: 210px;
+            padding:20px;
+            height: 135px;
+            opacity: 0.8;
+            background: url('shadow.png');
+        }
+        #tooltip.pretty h3 {
+            margin-bottom: 0.75em;
+            font-size: 12pt;
+            width: 220px;
+            text-align: center;
+        }
+        #tooltip.pretty div { width: 220px; text-align: left; }
+        
+        #tooltip.fancy {
+            background: url('shadow2.png');
+            padding-top: 5em;
+            height: 100px;
+        }
+        #tooltip.fancy.viewport-right {
+            background: url('shadow2-reverse.png');
+        }
+        
+        #extended { margin: 2em 0; }
+        #extended label { text-decoration: underline; }
+        #yahoo { width: 7em; }
+        #right, #right2 { text-align: right; }
+        #tooltip.right { width: 250px; }
+        #fancy2 { float: right; }
+     </style>
+     
+     <style>
+            #roundaboutId {
+                list-style: none;
+                padding: 0;
+                margin: 0 auto;
+                width: 36em;
+                height: 26em;
+            }
+            .liclass {
+                height: 8em;
+                width: 15em;
+                background-color: #fff;
+                text-align: center;
+                cursor: pointer;
+                border: 1px solid #bbb;
+                -webkit-border-radius: 4em;
+                -moz-border-radius: 4em;
+                -ms-border-radius: 4em;
+                -o-border-radius: 4em;
+                border-radius: 4em;
+            }
+                li.roundabout-in-focus {
+                    cursor: default;
+                }
+            .liclass span {
+                display: block;
+                padding-top: 3.5em;
+            }
+                .monolith {
+                    background-color: #ff2;
+                    color: #000;
+                    text-align: center;
+                    width: 150px;
+                    height: 200px;
+                    position: absolute;
+                    z-index: 265;
+                    left: 135px;
+                    border-color: #222;
+                    opacity: 0.50;
+                }
+
+            #carbonads-container {
+                clear: both;
+                margin-top: 1em;
+            }
+            #carbonads-container .carbonad {
+                margin: 0 auto;
+            }
+        /*Table style*/
+                        
+            a {
+                color: #c75f3e;
+            }
+            
+            
+            
+            #mytable {
+                width:auto;
+                padding: 0;
+                margin: 0;
+            }
+            
+            caption {
+                padding: 0 0 5px 0;
+                width: 700px;    
+                font: italic 5px "Trebuchet MS", Verdana, Arial, Helvetica, sans-serif;
+                text-align: right;
+            }
+            
+            th {
+                font: bold 7px "Trebuchet MS", Verdana, Arial, Helvetica, sans-serif;
+                color: #4f6b72;
+                border-right: 0.5px solid #C1DAD7;
+                border-bottom: 0.5px solid #C1DAD7;
+                border-top: 0.5px solid #C1DAD7;
+                text-align: left;
+                background: #CAE8EA url(images/bg_header.jpg) no-repeat;
+            }
+            
+            th.nobg {
+                border-top: 0;
+                border-left: 0;
+                border-right: 1px solid #C1DAD7;
+                background: none;
+            }
+            
+            td {
+                border-right: 0.2px solid #C1DAD7;
+                border-bottom: 0.2px solid #C1DAD7;
+                background: #fff;
+                color: #4f6b72;
+            }
+            
+            
+            td.alt {
+                background: #F5FAFA;
+                color: #797268;
+            }
+            
+            th.spec {
+                border-left: 0.2px solid #C1DAD7;
+                border-top: 0;
+                background: #fff url(images/bullet1.gif) no-repeat;
+                font: bold 5px "Trebuchet MS", Verdana, Arial, Helvetica, sans-serif;
+            }
+            
+            th.specalt {
+                border-left: 0.2px solid #C1DAD7;
+                border-top: 0;
+                background: #f5fafa url(images/bullet2.gif) no-repeat;
+                font: bold 5px "Trebuchet MS", Verdana, Arial, Helvetica, sans-serif;
+                color: #797268;
+            }
+            
+        </style>
+        
+        <ul id="roundaboutId" style="padding: 0px; position: relative;" class="roundabout-holder">
+            <li  class="monolith liclass"><span>Primary Provider / Nurse Details</span></li>
+             
+            <apex:repeat value="{!teamNames}" var="team" id="theRepeat">
+                <li  class="mover liclass"> 
+                <apex:image value="/img/icon/profile32.png" />
+                <table id="mytable" cellspacing="0" >
+                  <tr>
+                    <th scope="col" abbr="Configurations" class="nobg">Medicine</th>
+                    <th scope="col" abbr="Dual 1.8">Pager</th>
+                    <th scope="col" abbr="Dual 1.8">Discipline</th>
+                  </tr>
+                  <tr>
+                    <th scope="row" abbr="Model" class="nobg">Luis Campos</th>
+                    <td>4151112320</td>
+                    <td>Physician</td>
+                 </tr>
+                </table>         
+                <span><a class="hoverme" href="#{!team.linkName}">{!team.teamName}</a></span></li>
+            </apex:repeat>
+        </ul>
+        
+<!--         <a href="#" class="next">Next</a> -->
+        <center>
+           <Table>
+              <tr>
+                 <td><button id="button1">Previous</button></td>
+                 <td><button id="button2">Next</button></td>
+              </tr>
+            </Table>
+                 
+          </center>
+         <apex:repeat value="{!teamNames}" var="team" id="hoverme">
+        
+            <div class="teamCls" id="{!team.linkName}">
+                <ol> 
+                      
+                    <apex:repeat value="{!team.doctors}" var="doctor" id="theRepeat">
+                        <li>
+                          <table id="mytable" cellspacing="0" >
+                          <tr>
+                            <th scope="col" abbr="Configurations" class="nobg">Medicine</th>
+                            <th scope="col" abbr="Dual 1.8">Pager</th>
+                            <th scope="col" abbr="Dual 1.8">Discipline</th>
+                          </tr>
+                          <tr>
+                            <th scope="row" abbr="Model" class="nobg">Luis Campos</th>
+                            <td>4151112320</td>
+                            <td>Physician</td>
+                         </tr>
+                        </table>  
+                        {!doctor}</li>
+                    </apex:repeat>
+                </ol>
+            </div>
+            
+        </apex:repeat>
+
+        
+        <script>
+            $(document).ready(function() {
+                $('#roundaboutId').roundabout({
+                    minZ: 100,
+                    maxZ: 300,
+                    minOpacity: 1,
+                    minScale: 0.6,
+                    childSelector: '.mover',
+                    tilt: -4
+                });
+                
+                $(".hoverme").tooltip({
+                    bodyHandler: function() {
+                        return $($(this).attr("href")).html();
+                    },
+                    showURL: false
+                });
+                
+                 $('#button1').click(function() {
+                        $("#roundaboutId").roundabout("animateToNextChild");
+                       return false;
+                 });
+                $('#button2').click(function() {
+                        $("#roundaboutId").roundabout("animateToPreviousChild");
+                       return false;
+                 });
+                $(".teamCls").hide();
+            });
+        </script>
+</apex:page>

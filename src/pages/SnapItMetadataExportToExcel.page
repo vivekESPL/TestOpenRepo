@@ -1,0 +1,60 @@
+<apex:page controller="SnapItMetadataXplorerCtl" contentType="application/vnd.ms-excel#MetadataExportRpt.xls" cache="true">
+
+  <style>
+    .even{
+        background-color: rgb(240,240,240);  /* Even row color - Light Grey */
+    }
+    .odd{
+        background-color: rgb(255,255,255);  /* Odd row color - White */
+    } 
+    .tableHeader{
+        background-color: rgb(182,182,182);  /* Dark Grey */
+        text-align: center;
+        font-family: 'Verdana';
+        font-size: 8pt;  
+            font-weight: bold;
+    }
+    .columnFontCenter{
+            text-align : center; 
+            font-family: 'Verdana';
+            font-size: 8pt;
+    }
+    .columnFontLeft{
+            text-align : left; 
+            font-family: 'Verdana';
+            font-size: 8pt;
+            padding: 2px;
+    }
+  </style>
+  
+  <apex:dataTable id="tblDisplayFieldInfo" value="{!DisplaySFDCFieldList}" var="ft" cellspacing="1" rowClasses="odd,even" align="left">    
+       <apex:column headerValue="OBJECT" width="20%" dir="LTR" rowspan="1" headerClass="tableHeader" styleClass="columnFontLeft">
+           <apex:outputText value="{!ft.SObjectName}"/> 
+       </apex:column> 
+        
+       <apex:column headerValue="LABEL" width="20%" dir="LTR" rowspan="1" headerClass="tableHeader" styleClass="columnFontLeft"> 
+           <apex:outputText value="{!ft.FieldLabel}"/>
+       </apex:column>
+        
+       <apex:column headerValue="API NAME" width="20%" dir="LTR" headerClass="tableHeader" styleClass="columnFontLeft">
+           <apex:outputText value="{!ft.FieldName}"/>
+       </apex:column>
+       
+       <apex:column headerValue="DATA TYPE" width="20%" dir="LTR" headerClass="tableHeader" styleClass="columnFontLeft">
+           <apex:outputText value="{!ft.FieldDataType}"/>
+       </apex:column>
+       
+       <apex:column headerValue="DETAILS" width="20%" dir="LTR" headerClass="tableHeader" styleClass="columnFontLeft">
+           <apex:outputText value="{!ft.FieldDetails}"/>
+       </apex:column>
+  </apex:dataTable>     
+  
+  <div align="center" class="statusStyle" cellspacing="0" cellpadding="0" border="0">
+  <table>
+    <tr>
+        <td>Copyright ©2011 Eternus Solutions Private Limited. Visit www.eternussolutions.com for further information.</td>
+    </tr>
+  </table>
+  </div>
+  
+</apex:page>

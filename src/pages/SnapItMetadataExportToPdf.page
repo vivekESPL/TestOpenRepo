@@ -1,0 +1,53 @@
+<apex:page controller="SnapItMetadataXplorerCtl" renderAs="pdf" cache="true" showHeader="false">
+
+  <apex:stylesheet value="{!URLFOR($Resource.SnapItMetadataXplorerResources, '/SnapItMetadataXplorerResources/css/SnapItMetadataXplorerStyle.css')}"/>
+  <style type="text/css">
+  @page
+  {
+    /* Landscape orientation */
+    size:landscape;
+  }
+  </style>
+  
+   <table class="generalBold" width="100%"> 
+    <tr>
+        <td width="70%"><div align="center" class="generalBold">SOBJECT METADATA INFORMATION</div></td>
+        <td width="30%"><div align="right"><apex:image value="{!URLFOR($Resource.SnapItMetadataXplorerResources, '/SnapItMetadataXplorerResources/img/EternusLogo.png')}" title="Eternus Solutions Pvt. Ltd."/></div></td>
+    </tr>
+    <tr><td><div align="left" class="generalNormal"><i><apex:outputLabel value="{!NOW()}"/></i></div></td></tr>
+   </table><br/>
+  
+   <apex:dataTable id="tblDisplayFieldInfo" value="{!DisplaySFDCFieldList}" var="ft" cellspacing="1" rowClasses="odd,even" align="left">    
+       <apex:column headerValue="OBJECT" width="20%" dir="LTR" rowspan="1" headerClass="tableHeader" styleClass="columnFontLeft">
+           <apex:outputText value="{!ft.SObjectName}"/> 
+       </apex:column> 
+        
+       <apex:column headerValue="LABEL" width="20%" dir="LTR" rowspan="1" headerClass="tableHeader" styleClass="columnFontLeft">
+           <apex:outputText value="{!ft.FieldLabel}"/>
+       </apex:column>
+        
+       <apex:column headerValue="API NAME" width="20%" dir="LTR" headerClass="tableHeader" styleClass="columnFontLeft">
+           <apex:outputText value="{!ft.FieldName}"/>
+       </apex:column>
+       
+       <apex:column headerValue="DATA TYPE" width="20%" dir="LTR" headerClass="tableHeader" styleClass="columnFontLeft">
+           <apex:outputText value="{!ft.FieldDataType}"/>
+       </apex:column>
+       
+       <apex:column headerValue="DETAILS" width="20%" dir="LTR" headerClass="tableHeader" styleClass="columnFontLeft">
+           <apex:outputText value="{!ft.FieldDetails}"/>
+       </apex:column>
+       
+       <br/><br/><br/>
+       <apex:facet name="footer"> 
+        <div class="statusStyle" cellspacing="0" cellpadding="0" border="0">
+            <table align="center">
+                <tr>
+                    <td>Copyright ©2011 Eternus Solutions Private Limited. Visit <a href="http://www.eternussolutions.com">www.eternussolutions.com</a> for further information.</td>
+                </tr>
+            </table>
+        </div>
+       </apex:facet>
+       
+   </apex:dataTable>
+</apex:page>

@@ -1,0 +1,5 @@
+<apex:page controller="MultiSheetExcelGenerate" sidebar="false" 
+showHeader="false" contentType="application/vnd.ms-excel#myfile.xls">
+
+<c:MultiSheetExcelComponent datamodel="{!dm}" />
+</apex:page>

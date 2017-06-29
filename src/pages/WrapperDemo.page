@@ -1,0 +1,17 @@
+<apex:page controller="WrapperDemo">
+    <apex:form >
+	    <table width="100%">
+		    <apex:repeat value="{!lstWrapper}" var="wrapper">
+		        <tr>
+		            <apex:repeat value="{!wrapper}" var="w">
+		                <td>
+<!-- 		                    <apex:outputText value="{!w.strObjectName}"/><br/> -->
+		                    <apex:outputText value="{!w.strObjectLabel}"/>
+		                    <apex:inputCheckBox value="{!w.blnCheck}"/>
+		                </td>
+		            </apex:repeat>
+		        </tr>
+		    </apex:repeat>
+	    </table>
+    </apex:form>
+</apex:page>

@@ -1,0 +1,289 @@
+<apex:page controller="MetadataComparatorController" action="{!getAllSFDCObjects}">
+
+<apex:pageMessages />
+  <apex:stylesheet value="{!URLFOR($Resource.MetadataComparatorResources, '/MetadataComparatorResources/css/MetadataComparatorStyle.css')}"/>
+  
+<apex:sectionHeader id="header" title="Metadata Comparator"/>
+  <apex:outputPanel id="showError" >
+    <apex:pageMessages />
+  </apex:outputPanel> 
+  <apex:form > 
+ 
+     <apex:outputPanel id="pnlInput" styleClass="generalNormal">
+        <apex:pageBlock mode="edit" title="Metadata Details">           
+            <apex:pageBlockButtons location="bottom">           
+                <table>
+                    <tr>
+                        <td>
+                         <apex:outputPanel id="pnlButton">
+                            <apex:commandButton action="{!processSelectedSobjects}" disabled="{!IsShowMetadataBtnDisabled}" rerender="showError,pnlPoller, pnlDisplaySelectedObjCnt, pnlDisplayProcessedBatchCnt, pnlButton, pnlDisplayAllDetails" value="Compare Objects" styleClass="generalNormal" status="tableStatus"/>
+                         </apex:outputPanel>
+                        </td>
+                        
+                        <td>
+                            <apex:outputPanel id="pnlDisplayProcessedBatchCnt"> 
+                                <apex:outputLabel value="Processing {!MapKey} Of {!BatchMapSize} Batches..." rendered="{!IF(IsPollerEnabled == True, True, False)}" styleclass="generalNormal"/>
+                            </apex:outputPanel>
+                        </td>
+                        
+                        <td>
+                            <div align="right">
+                            <apex:outputPanel id="pnlDisplaySelectedObjCnt"> 
+                               <apex:outputLabel id="lblSlectedObjCnt" value="Selected Object Count: {!SelectedObjCnt}" styleclass="generalNormal" rendered="{!IF(IsSelectedObjCntLabelVisible = True, True, False)}"/>
+                            </apex:outputPanel>
+                            </div>           
+                        </td>
+                    </tr>
+                </table> 
+            </apex:pageBlockButtons>
+            
+            <br/>
+            <apex:outputLabel value="Select two objects to compare:" styleClass="generalBold"/>&nbsp;&nbsp;&nbsp;&nbsp;
+            <apex:selectList id="selectObject" value="{!SelectedObjectNameList}" size="5" styleClass="generalNormal" multiselect="true">
+                <apex:selectOptions value="{!SFDCObjectList}"/>
+            </apex:selectList>&nbsp;&nbsp;
+            
+            <p>
+            <apex:outputLabel value="Select Field Category:" styleClass="generalBold" for="selectCategory"/>
+            <apex:selectRadio id="selectCategory" layout="linedirection" value="{!SelectedFieldCategory}" styleClass="fldCategory">
+                <apex:selectOptions value="{!FieldCategoryLabels}"/>
+            </apex:selectRadio></p>
+            
+        </apex:pageBlock>
+      </apex:outputPanel> 
+      
+<!--       <apex:outputPanel id="pnlPoller"> -->
+<!--         <apex:actionPoller action="{!getAllFields}" enabled="{!IsPollerEnabled}" rerender="pnlDisplayProcessedBatchCnt, pnlDisplayAllDetails, pnlNavigation, pnlButton" interval="5" status="tableStatus"/> -->
+<!--       </apex:outputPanel> -->
+         </apex:form>
+      
+      <apex:actionStatus id="tableStatus" onstart="document.body.style.cursor='wait';return true;" onStop="document.body.style.cursor='default';return true;" startStyleClass="generalNormal">
+      <apex:facet name="start" >                
+          <center>
+                <img src="{!URLFOR($Resource.MetadataComparatorResources, '/MetadataComparatorResources/img/Loading.gif')}"/>&nbsp;Loading... 
+          </center>                
+      </apex:facet> 
+      <apex:facet name="stop"/>
+  	  </apex:actionStatus>
+      
+      <apex:outputPanel id="pnlDisplayAllDetails">
+      <apex:form > 
+ 
+      <table width="100%">
+      <tr>
+        <td width="50%">        
+            <apex:outputPanel id="pnlNavigation" styleClass="generalBold" rendered="{!IsFieldTableVisible}">
+              <div align="left">
+                    <apex:commandLink id="lnkFirst" value="First" action="{!getFirstDisplayBatch}" rendered="{!IsFirstLastVisible}" rerender="pnlDisplayAllDetails, pnlNavigation" status="tableStatus" />&nbsp;
+                    <apex:commandLink id="lnkPrev" value="Prev" action="{!getPreviousDisplayBatch}" rendered="{!IsPreviousVisible}" rerender="pnlDisplayAllDetails, pnlNavigation" status="tableStatus"  />&nbsp;
+                    <apex:commandLink id="lnkNext" value="Next" action="{!getNextDisplayBatch}"  rendered="{!IsNextVisible}" rerender="pnlDisplayAllDetails, pnlNavigation" status="tableStatus" />&nbsp;
+                    <apex:commandLink id="lnkLast" value="Last" action="{!getLastDisplayBatch}" rendered="{!IsFirstLastVisible}" rerender="pnlDisplayAllDetails, pnlNavigation" status="tableStatus" />
+              </div> 
+             </apex:outputPanel>
+        </td>
+<!--         <td width="50%"> -->
+<!--               <apex:outputPanel id="pnlExport" styleClass="generalNormal" rendered="{!IsFieldTableVisible}"> -->
+<!--               <div align="right"> -->
+<!--               <table> -->
+<!--                 <tr> -->
+<!--                     <td valign="middle"><apex:commandLink action="{!exportToExcel}" value="Export to Excel" title="Export to Excel" styleClass="generalNormal"/></td> -->
+<!--                     <td><apex:image value="{!URLFOR($Resource.SnapItMetadataXplorerResources, '/SnapItMetadataXplorerResources/img/ExportToExcel.png')}" title="Excel"/> &nbsp; &nbsp;</td> -->
+<!--                     <td valign="middle"><apex:commandLink action="{!exportToPdf}"  value="Export to PDF" title="Export to PDF" styleClass="generalNormal"/></td> -->
+<!--                     <td><apex:image value="{!URLFOR($Resource.SnapItMetadataXplorerResources, '/SnapItMetadataXplorerResources/img/ExportToPdf.gif')}" title="PDF"/></td> -->
+<!--                 </tr> -->
+<!--               </table> -->
+<!--               </div> -->
+<!--              </apex:outputPanel>  -->
+<!--         </td> -->
+         </tr>  
+         </table>
+  
+         </apex:form>
+         
+<!--          <apex:form > -->
+<!--          <apex:outputPanel id="pnlDisplayTable1" styleClass="generalNormal" rendered="{!IsObjectTableVisible}">  -->
+<!--          <apex:dataTable id="tblDisplayObjectInfo" value="{!SFDCObjList}" var="ft" cellspacing="1" rowClasses="odd,even" align="left" width="100%">     -->
+<!--            <apex:column headerValue="LABEL" width="20%" dir="LTR" rowspan="1" headerClass="tableHeader" styleClass="columnFontLeft"> -->
+<!--                <apex:outputText value="{!ft.ObjectLabel}"/> -->
+<!--            </apex:column>  -->
+            
+<!--            <apex:column headerValue="API NAME" width="20%" dir="LTR" rowspan="1" headerClass="tableHeader" styleClass="columnFontLeft"> -->
+<!--                <apex:outputText value="{!ft.ObjectName}"/> -->
+<!--            </apex:column> -->
+            
+<!--            <apex:column headerValue="KEY PREFIX" width="20%" dir="LTR" headerClass="tableHeader" styleClass="columnFontLeft"> -->
+<!--                <apex:outputText value="{!ft.KeyPrefix}"/> -->
+<!--            </apex:column> -->
+           
+<!--            <apex:column headerValue="CREATEABLE" width="20%" dir="LTR" headerClass="tableHeader" styleClass="columnFontLeft"> -->
+<!--                <apex:inputCheckbox value="{!ft.IsCreateable}" disabled="true"/> -->
+<!--            </apex:column> -->
+           
+<!--            <apex:column headerValue="DELETEABLE" width="20%" dir="LTR" headerClass="tableHeader" styleClass="columnFontLeft"> -->
+<!--                <apex:inputCheckbox value="{!ft.IsDeletable}" disabled="true"/> -->
+<!--            </apex:column> -->
+           
+<!--            <apex:column headerValue="UPDATEABLE" width="20%" dir="LTR" headerClass="tableHeader" styleClass="columnFontLeft"> -->
+<!--                <apex:inputCheckbox value="{!ft.IsUpdateable}" disabled="true"/>  -->
+<!--            </apex:column> -->
+           
+<!--            <apex:column headerValue="QUERYABLE" width="20%" dir="LTR" headerClass="tableHeader" styleClass="columnFontLeft"> -->
+<!--                <apex:inputCheckbox value="{!ft.IsQueryable}" disabled="true"/> -->
+<!--            </apex:column> -->
+           
+<!--            <apex:column headerValue="SEARCHABLE" width="20%" dir="LTR" headerClass="tableHeader" styleClass="columnFontLeft"> -->
+<!--                <apex:inputCheckbox value="{!ft.IsSearchable}" disabled="true"/> -->
+<!--            </apex:column> -->
+           
+<!--            <apex:column headerValue="UNDELETABLE" width="20%" dir="LTR" headerClass="tableHeader" styleClass="columnFontLeft"> -->
+<!--                <apex:inputCheckbox value="{!ft.IsUndeletable}" disabled="true"/> -->
+<!--            </apex:column> -->
+<!--         </apex:dataTable> -->
+<!--         </apex:outputPanel> -->
+<!--         </apex:form> -->
+      
+<!--       <apex:form > -->
+<!--       <apex:outputPanel id="pnlDisplayTable1" styleClass="generalNormal" rendered="{!IsObjectTableVisible}"> -->
+<!--       <table> -->
+<!--       	<apex:repeat value="{!SFDCObjList}" var="ft"> -->
+<!--       	<tr> -->
+      	
+<!--       		<td> -->
+<!--       			<tr><td><apex:outputText value="{!ft.ObjectLabel}"/></td></tr> -->
+<!--       			<tr><td><apex:outputText value="{!ft.ObjectName}"/></td></tr> -->
+<!--       			<tr><td><apex:outputText value="{!ft.KeyPrefix}"/></td></tr> -->
+<!--       			<tr><td><apex:inputCheckbox value="{!ft.IsCreateable}" disabled="true"/></td></tr> -->
+<!--       			<tr><td><apex:inputCheckbox value="{!ft.IsDeletable}" disabled="true"/></td></tr> -->
+<!--       			<tr><td><apex:inputCheckbox value="{!ft.IsUpdateable}" disabled="true"/></td></tr> -->
+<!--       			<tr><td><apex:inputCheckbox value="{!ft.IsQueryable}" disabled="true"/></td></tr> -->
+<!--       			<tr><td><apex:inputCheckbox value="{!ft.IsSearchable}" disabled="true"/></td></tr> -->
+<!--       			<tr><td><apex:inputCheckbox value="{!ft.IsUndeletable}" disabled="true"/></td></tr> -->
+<!--       		</td> -->
+      	
+<!--       	</tr> -->
+<!--       	</apex:repeat> -->
+      	
+<!--       </table> -->
+<!--       </apex:outputPanel> -->
+<!--       </apex:form> -->
+
+			
+			<apex:form >
+			<apex:outputPanel id="pnlDisplayTable1" styleClass="generalNormal" rendered="{!IsObjectTableVisible}">
+			<table cellspacing="20px">
+				<tr>
+					<th> </th>
+					<th class="generalBold">Object 1</th>
+					<th class="generalBold">Object 2</th>
+					<th class="generalBold">Match</th>
+				</tr>
+				
+				<tr>
+					<td class="generalBold">Label</td>
+					<td class="generalNormal"><apex:outputText value="{!SFDCObjList[0].ObjectLabel}"/></td>
+					<td class="generalNormal"><apex:outputText value="{!SFDCObjList[1].ObjectLabel}"/></td>
+					<td class="generalNormal" style="{!IF(ObjectMatchList[0].match9 == 'Yes','background-color:green','background-color:red')}"><apex:outputText value="{!ObjectMatchList[0].match1}"/></td>
+				</tr>
+				
+				<tr>
+					<td class="generalBold">API Name</td>
+					<td class="generalNormal"><apex:outputText value="{!SFDCObjList[0].ObjectName}"/></td>
+					<td class="generalNormal"><apex:outputText value="{!SFDCObjList[1].ObjectName}"/></td>
+					<td class="generalNormal" style="{!IF(ObjectMatchList[0].match9 == 'Yes','background-color:green','background-color:red')}"><apex:outputText value="{!ObjectMatchList[0].match2}"/></td>
+				</tr>
+				
+				<tr>
+					<td class="generalBold">Key Prefix</td>
+					<td class="generalNormal"><apex:outputText value="{!SFDCObjList[0].KeyPrefix}"/></td>
+					<td class="generalNormal"><apex:outputText value="{!SFDCObjList[1].KeyPrefix}"/></td>
+					<td class="generalNormal" style="{!IF(ObjectMatchList[0].match9 == 'Yes','background-color:green','background-color:red')}"><apex:outputText value="{!ObjectMatchList[0].match3}"/></td>
+				</tr>
+				
+				<tr>
+					<td class="generalBold">Createable</td>
+					<td class="generalNormal"><apex:inputCheckbox value="{!SFDCObjList[0].IsCreateable}" disabled="true"/></td>
+					<td class="generalNormal"><apex:inputCheckbox value="{!SFDCObjList[1].IsCreateable}" disabled="true"/></td>
+					<td class="generalNormal" style="{!IF(ObjectMatchList[0].match9 =='Yes','background-color:green','background-color:red')}"><apex:outputText value="{!ObjectMatchList[0].match4}"/></td>
+				</tr>
+				
+				<tr>
+					<td class="generalBold">Deletable</td>
+					<td class="generalNormal"><apex:inputCheckbox value="{!SFDCObjList[0].IsDeletable}" disabled="true"/></td>
+					<td class="generalNormal"><apex:inputCheckbox value="{!SFDCObjList[1].IsDeletable}" disabled="true"/></td>
+					<td class="generalNormal" style="{!IF(ObjectMatchList[0].match9 == 'Yes','background-color:green','background-color:red')}"><apex:outputText value="{!ObjectMatchList[0].match5}"/></td>
+				</tr>
+				
+				<tr>
+					<td class="generalBold">Updateable</td>
+					<td class="generalNormal"><apex:inputCheckbox value="{!SFDCObjList[0].IsUpdateable}" disabled="true"/></td>
+					<td class="generalNormal"><apex:inputCheckbox value="{!SFDCObjList[1].IsUpdateable}" disabled="true"/></td>
+					<td class="generalNormal" style="{!IF(ObjectMatchList[0].match9 == 'Yes','background-color:green','background-color:red')}"><apex:outputText value="{!ObjectMatchList[0].match6}"/></td>
+				</tr>
+				
+				<tr>
+					<td class="generalBold">Queryable</td>
+					<td class="generalNormal"><apex:inputCheckbox value="{!SFDCObjList[0].IsQueryable}" disabled="true"/></td>
+					<td class="generalNormal"><apex:inputCheckbox value="{!SFDCObjList[1].IsQueryable}" disabled="true"/></td>
+					<td class="generalNormal" style="{!IF(ObjectMatchList[0].match9 == 'Yes','background-color:green','background-color:red')}"><apex:outputText value="{!ObjectMatchList[0].match7}"/></td>
+				</tr>
+				
+				<tr>
+					<td class="generalBold">Searchable</td>
+					<td class="generalNormal"><apex:inputCheckbox value="{!SFDCObjList[0].IsSearchable}" disabled="true"/></td>
+					<td class="generalNormal"><apex:inputCheckbox value="{!SFDCObjList[1].IsSearchable}" disabled="true"/></td>
+					<td class="generalNormal" style="{!IF(ObjectMatchList[0].match9 == 'Yes','background-color:green','background-color:red')}"><apex:outputText value="{!ObjectMatchList[0].match8}"/></td>
+				</tr>
+				
+				<tr>
+					<td class="generalBold">Undeletable</td>
+					<td class="generalNormal"><apex:inputCheckbox value="{!SFDCObjList[0].IsUndeletable}" disabled="true"/></td>
+					<td class="generalNormal"><apex:inputCheckbox value="{!SFDCObjList[1].IsUndeletable}" disabled="true"/></td>
+					<td class="generalNormal" style="{!IF(ObjectMatchList[0].match9 == 'Yes','background-color:green','background-color:red')}"><apex:outputText value="{!ObjectMatchList[0].match9}"/></td>
+				</tr>
+				
+				
+					
+<!-- 					<td><apex:outputText value="{!SFDCObjList[0].ObjectName}"/></td> -->
+<!-- 					<td><apex:outputText value="{!SFDCObjList[0].KeyPrefix}"/></td> -->
+<!-- 					<td><apex:inputCheckbox value="{!SFDCObjList[0].IsCreateable}" disabled="true"/></td> -->
+<!-- 					<td><apex:inputCheckbox value="{!SFDCObjList[0].IsDeletable}" disabled="true"/></td> -->
+<!-- 					<td><apex:inputCheckbox value="{!SFDCObjList[0].IsUpdateable}" disabled="true"/></td> -->
+<!-- 					<td><apex:inputCheckbox value="{!SFDCObjList[0].IsQueryable}" disabled="true"/></td> -->
+<!-- 					<td><apex:inputCheckbox value="{!SFDCObjList[0].IsSearchable}" disabled="true"/></td> -->
+<!-- 					<td><apex:inputCheckbox value="{!SFDCObjList[0].IsUndeletable}" disabled="true"/></td> -->
+			</table>
+			</apex:outputPanel>
+			</apex:form>
+      		
+      
+  
+ 
+      
+<!--       <apex:outputPanel id="pnlDisplayTable" styleClass="generalNormal" rendered="{!IsFieldTableVisible}"> -->
+<!--       <apex:dataTable id="tblDisplayFieldInfo" value="{!DisplaySFDCFieldList}" var="ft" cellspacing="1" rowClasses="odd,even" align="left" width="100%">     -->
+<!--            <apex:column headerValue="OBJECT" width="20%" dir="LTR" rowspan="1" headerClass="tableHeader" styleClass="columnFontLeft"> -->
+<!--                <apex:outputText value="{!ft.SObjectName}"/> -->
+<!--            </apex:column>  -->
+            
+<!--            <apex:column headerValue="LABEL" width="20%" dir="LTR" rowspan="1" headerClass="tableHeader" styleClass="columnFontLeft"> -->
+<!--                <apex:outputText value="{!ft.FieldLabel}"/> -->
+<!--            </apex:column> -->
+            
+<!--            <apex:column headerValue="API NAME" width="20%" dir="LTR" headerClass="tableHeader" styleClass="columnFontLeft"> -->
+<!--                <apex:outputText value="{!ft.FieldName}"/> -->
+<!--            </apex:column> -->
+           
+<!--            <apex:column headerValue="DATA TYPE" width="20%" dir="LTR" headerClass="tableHeader" styleClass="columnFontLeft"> -->
+<!--                <apex:outputText value="{!ft.FieldDataType}"/> -->
+<!--            </apex:column> -->
+           
+<!--            <apex:column headerValue="DETAILS" width="20%" dir="LTR" headerClass="tableHeader" styleClass="columnFontLeft"> -->
+<!--                <apex:outputText value="{!ft.FieldDetails}"/>  -->
+<!--            </apex:column> -->
+<!--       </apex:dataTable> -->
+<!--   </apex:outputPanel> -->
+  
+  </apex:outputPanel>
+      
+
+</apex:page>

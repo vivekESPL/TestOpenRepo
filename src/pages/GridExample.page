@@ -1,0 +1,15 @@
+<apex:page sidebar="false">
+<style>
+.badgearea {
+    background-color: white;
+    background-image: url("{!$Resource.GridImage}");
+    color: white;
+    height: 288px;
+    left: 79px;
+    position: absolute;
+    top: 60px;
+    width: 480px;
+}
+</style>
+<div id="main" class="badgearea"></div>
+</apex:page>

@@ -1,0 +1,24 @@
+<apex:page standardController="Parent_Patent_Detail__c" extensions="NewParentPatentExtension">
+  <apex:form id="form">
+      <apex:pageBlock title="New Parent Patent">
+          <apex:pageBlockButtons >
+              <apex:commandButton action="{!savePatent}" value="Save"/>
+              <apex:commandButton action="{!cancelPatent}" value="Cancel"/>
+          </apex:pageBlockButtons>
+          <apex:pageBlockSection title="Information" columns="1" collapsible="false">
+            <apex:pageBlockSectionItem >
+                <apex:outputLabel value="Ref. No." for="refNo"/>
+                <apex:inputField value="{!objParentPatent.Name}" id="refNo" required="true"/> 
+            </apex:pageBlockSectionItem>
+            <apex:pageBlockSectionItem >
+                <apex:outputLabel value="Patent Type" for="patentType"/>
+                <apex:inputField value="{!objParentPatent.Parent_Patent_Type__c}" id="patentType"/> 
+            </apex:pageBlockSectionItem>
+            <!-- <apex:pageBlockSectionItem >
+                <apex:outputLabel value="Countries" for="countries"/>
+                <apex:inputField value="{!objParentPatent.Countries__c}" id="countries"/> 
+            </apex:pageBlockSectionItem> -->
+           </apex:pageBlockSection>
+      </apex:pageBlock>
+  </apex:form>
+</apex:page>
